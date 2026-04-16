@@ -1,0 +1,58 @@
+{{ define "live" }}{{ template "base" . }}{{ end }}
+
+{{ define "content" }}
+<section class="page-header">
+  <div class="wrap">
+    <span class="eyebrow">Live Selling</span>
+    <h1>One place for your stream link, live callout, and stream-priority inventory.</h1>
+    <p>This page follows the same clean service-led structure as the reference site but adapts it for live card sales.</p>
+    {{ if .Live.StreamURL }}<a class="button gold" href="{{ .Live.StreamURL }}" target="_blank" rel="noreferrer">Open {{ .Live.Platform }}</a>{{ end }}
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap live-layout">
+    <article class="panel">
+      <span class="eyebrow">{{ if .Live.IsActive }}Live Now{{ else }}Ready When You Are{{ end }}</span>
+      <h2>{{ .Live.Title }}</h2>
+      <p>{{ .Live.Pitch }}</p>
+      <p class="subtle">{{ .Live.Callout }}</p>
+    </article>
+    <article class="panel dark-panel">
+      <span class="eyebrow">Why this matters</span>
+      <h2>Stream traffic should never be buried.</h2>
+      <p>The strongest direct-to-consumer stores make it obvious when live commerce is active, while still keeping product discovery straightforward.</p>
+    </article>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Live Priority Inventory</span>
+        <h2>Cards tagged for mentions, claims, and cross-sell.</h2>
+      </div>
+    </div>
+    <div class="product-grid">
+      {{ range .Products }}
+      <article class="product-card">
+        <div class="product-art accent-{{ .Accent }}">
+          <span>{{ .Team }}</span>
+          <strong>{{ if .Player }}{{ .Player }}{{ else }}{{ .Title }}{{ end }}</strong>
+          <p>{{ .Brand }}</p>
+        </div>
+        <div class="product-body">
+          <h3><a href="/shop/{{ .Slug }}">{{ .Title }}</a></h3>
+          <p>{{ .Summary }}</p>
+          <div class="product-row">
+            <strong>{{ currency .PriceCents }}</strong>
+            <a class="button dark small" href="/shop/{{ .Slug }}">View</a>
+          </div>
+        </div>
+      </article>
+      {{ end }}
+    </div>
+  </div>
+</section>
+{{ end }}

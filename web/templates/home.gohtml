@@ -1,0 +1,92 @@
+{{ define "home" }}{{ template "base" . }}{{ end }}
+
+{{ define "content" }}
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">Modeled on modern direct-to-consumer storefront patterns</span>
+      <h1>A cleaner football card shop built for both website sales and live streams.</h1>
+      <p>The structure is intentionally similar to the reference site: simple hero, obvious navigation, featured products, value sections, and clear account/cart entry points. The difference is that this one is tuned for football trading cards and live selling workflows.</p>
+      <div class="actions">
+        <a class="button gold" href="/shop">Explore Products</a>
+        <a class="button dark" href="/live">Open Live Selling</a>
+      </div>
+    </div>
+    <div class="hero-panel">
+      <div class="mini-card-list">
+        {{ range .Featured }}
+        <article class="mini-card accent-{{ .Accent }}">
+          <span>{{ .Team }}</span>
+          <strong>{{ .Player }}</strong>
+          <p>{{ .Title }}</p>
+          <em>{{ currency .PriceCents }}</em>
+        </article>
+        {{ end }}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Featured Products</span>
+        <h2>Inventory that drives clicks, claims, and checkout.</h2>
+      </div>
+      <a href="/shop">View full catalog</a>
+    </div>
+    <div class="product-grid">
+      {{ range .Featured }}
+      <article class="product-card">
+        <div class="product-art accent-{{ .Accent }}">
+          <span>{{ .Team }}</span>
+          <strong>{{ if .Player }}{{ .Player }}{{ else }}{{ .Title }}{{ end }}</strong>
+          <p>{{ .Brand }}</p>
+        </div>
+        <div class="product-body">
+          <div class="product-meta">
+            {{ if .LiveExclusive }}<span class="tag live">Live Priority</span>{{ end }}
+            {{ if .Grade }}<span class="tag">{{ .Grade }}</span>{{ end }}
+          </div>
+          <h3><a href="/shop/{{ .Slug }}">{{ .Title }}</a></h3>
+          <p>{{ .Summary }}</p>
+          <div class="product-row">
+            <strong>{{ currency .PriceCents }}</strong>
+            <button class="button gold small add-to-cart"
+              data-product-id="{{ .ID }}"
+              data-slug="{{ .Slug }}"
+              data-title="{{ .Title }}"
+              data-summary="{{ .Summary }}"
+              data-price="{{ .PriceCents }}"
+              data-accent="{{ .Accent }}">
+              Add to Cart
+            </button>
+          </div>
+        </div>
+      </article>
+      {{ end }}
+    </div>
+  </div>
+</section>
+
+<section class="section muted">
+  <div class="wrap service-grid">
+    <article>
+      <span class="eyebrow">Service Model</span>
+      <h3>Direct product sales</h3>
+      <p>List singles, slabs, autos, and featured drops in a standard storefront without giving up modern merchandising.</p>
+    </article>
+    <article>
+      <span class="eyebrow">Live Commerce</span>
+      <h3>Live stream traffic routing</h3>
+      <p>Keep your stream link active across the site when you are live, and tag inventory that should get top billing during shows.</p>
+    </article>
+    <article>
+      <span class="eyebrow">Operations</span>
+      <h3>Accounts, orders, and shipment status</h3>
+      <p>Capture registered accounts locally, manage admin access, and update payment, fulfillment, and shipping states from one dashboard.</p>
+    </article>
+  </div>
+</section>
+{{ end }}

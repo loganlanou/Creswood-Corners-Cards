@@ -1,0 +1,27 @@
+{{ define "cart" }}{{ template "base" . }}{{ end }}
+
+{{ define "content" }}
+<section class="page-header">
+  <div class="wrap narrow">
+    <span class="eyebrow">Cart</span>
+    <h1>Clean checkout flow with local demo ordering and a Stripe-ready backend.</h1>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap cart-layout">
+    <div id="cart-items" class="cart-items"></div>
+    <aside class="panel">
+      <span class="eyebrow">Checkout</span>
+      <h2 id="cart-total">$0.00</h2>
+      <p>On localhost, checkout creates a tracked demo order in the Go app. Stripe keys can be wired into this backend later without changing the store structure.</p>
+      <form id="checkout-form" class="stack">
+        <input name="customer_name" placeholder="Customer name">
+        <input name="email" type="email" placeholder="Email address">
+        <button class="button gold" type="submit">Place Order</button>
+      </form>
+      <p id="cart-error" class="error"></p>
+    </aside>
+  </div>
+</section>
+{{ end }}

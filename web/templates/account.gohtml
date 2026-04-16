@@ -1,0 +1,14 @@
+{{ define "account" }}{{ template "base" . }}{{ end }}
+
+{{ define "content" }}
+<section class="section">
+  <div class="wrap narrow">
+    <article class="panel">
+      <span class="eyebrow">Account</span>
+      <h1>{{ .CurrentUser.Name }}</h1>
+      <p>{{ .CurrentUser.Email }}</p>
+      <p>Admin access: {{ if .CurrentUser.IsAdmin }}enabled{{ else }}not enabled{{ end }}</p>
+    </article>
+  </div>
+</section>
+{{ end }}

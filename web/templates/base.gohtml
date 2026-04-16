@@ -1,0 +1,77 @@
+{{ define "base" }}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ .Title }} | {{ .AppName }}</title>
+  <link rel="stylesheet" href="/static/css/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark">CC</span>
+        <span>
+          <strong>Creswood</strong>
+          <em>Corners Cards</em>
+        </span>
+      </a>
+      <nav class="nav">
+        <a href="/shop">Shop</a>
+        <a href="/live">Live Selling</a>
+        <a href="/account">Account</a>
+        {{ if .CurrentUser }}
+          {{ if .CurrentUser.IsAdmin }}<a href="/admin">Admin</a>{{ end }}
+          <form action="/sign-out" method="post" class="inline-form"><button class="linkish">Sign Out</button></form>
+        {{ else }}
+          <a href="/sign-in">Sign In</a>
+          <a href="/sign-up">Sign Up</a>
+        {{ end }}
+        <a class="cart-pill" href="/cart">Cart</a>
+      </nav>
+    </div>
+  </header>
+
+  {{ if .Live.IsActive }}
+  <section class="live-strip">
+    <div class="wrap live-strip-inner">
+      <div>
+        <span class="eyebrow">Live now on {{ .Live.Platform }}</span>
+        <strong>{{ .Live.Title }}</strong>
+        <p>{{ .Live.Callout }}</p>
+      </div>
+      <a class="button gold" href="{{ .Live.StreamURL }}" target="_blank" rel="noreferrer">Join Live Selling</a>
+    </div>
+  </section>
+  {{ end }}
+
+  <main>
+    {{ block "content" . }}{{ end }}
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-grid">
+      <div>
+        <h3>Creswood Corners Cards</h3>
+        <p>Football-first card sales, live stream support, account capture, and operational visibility in one Go application.</p>
+      </div>
+      <div>
+        <h4>Store</h4>
+        <a href="/shop">Catalog</a>
+        <a href="/live">Live selling</a>
+        <a href="/cart">Cart</a>
+      </div>
+      <div>
+        <h4>Operations</h4>
+        <p>Clerk ready: {{ if .ClerkEnabled }}configured{{ else }}not configured{{ end }}</p>
+        <p>Stripe ready: {{ if .StripeEnabled }}configured{{ else }}demo checkout mode{{ end }}</p>
+        <p>Reference: <a href="{{ .ReferenceWebsite }}" target="_blank" rel="noreferrer">Logan's 3D Creations</a></p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/cart.js"></script>
+</body>
+</html>
+{{ end }}

@@ -1,0 +1,29 @@
+{{ define "success" }}{{ template "base" . }}{{ end }}
+
+{{ define "content" }}
+<section class="section">
+  <div class="wrap narrow">
+    <article class="panel">
+      <span class="eyebrow">Order Received</span>
+      <h1>{{ .Order.OrderNumber }}</h1>
+      <p>{{ .Order.Email }}</p>
+      <strong class="price-xl">{{ currency .Order.TotalCents }}</strong>
+      <div class="stack">
+        {{ range .Order.Items }}
+        <div class="table-row">
+          <div>
+            <strong>{{ .ProductTitle }}</strong>
+            <p>Qty {{ .Quantity }}</p>
+          </div>
+          <span>{{ currency .UnitPrice }}</span>
+        </div>
+        {{ end }}
+      </div>
+      <div class="actions">
+        <a class="button gold" href="/shop">Keep Shopping</a>
+        <a class="button dark" href="/admin">Admin Dashboard</a>
+      </div>
+    </article>
+  </div>
+</section>
+{{ end }}

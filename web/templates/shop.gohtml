@@ -1,0 +1,54 @@
+{{ define "shop" }}{{ template "base" . }}{{ end }}
+
+{{ define "content" }}
+<section class="page-header">
+  <div class="wrap narrow">
+    <span class="eyebrow">Shop</span>
+    <h1>Football singles, slabs, rookies, and stream-ready inventory.</h1>
+    <p>Fast browsing with clean product cards and no marketplace clutter.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="catalog-tools">
+      <input id="catalog-search" type="search" placeholder="Search player, team, brand, or set">
+    </div>
+    <div class="product-grid" id="catalog-grid">
+      {{ range .Products }}
+      <article class="product-card"
+        data-search="{{ .Title }} {{ .Player }} {{ .Team }} {{ .Brand }} {{ .SetName }}">
+        <div class="product-art accent-{{ .Accent }}">
+          <span>{{ .Team }}</span>
+          <strong>{{ if .Player }}{{ .Player }}{{ else }}{{ .Title }}{{ end }}</strong>
+          <p>{{ .Brand }}</p>
+        </div>
+        <div class="product-body">
+          <div class="product-meta">
+            {{ if .LiveExclusive }}<span class="tag live">Live Priority</span>{{ end }}
+            {{ if .Grade }}<span class="tag">{{ .Grade }}</span>{{ end }}
+          </div>
+          <h3><a href="/shop/{{ .Slug }}">{{ .Title }}</a></h3>
+          <p>{{ .Summary }}</p>
+          <div class="product-row">
+            <strong>{{ currency .PriceCents }}</strong>
+            <div class="split-actions">
+              <a class="button dark small" href="/shop/{{ .Slug }}">View</a>
+              <button class="button gold small add-to-cart"
+                data-product-id="{{ .ID }}"
+                data-slug="{{ .Slug }}"
+                data-title="{{ .Title }}"
+                data-summary="{{ .Summary }}"
+                data-price="{{ .PriceCents }}"
+                data-accent="{{ .Accent }}">
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+      </article>
+      {{ end }}
+    </div>
+  </div>
+</section>
+{{ end }}

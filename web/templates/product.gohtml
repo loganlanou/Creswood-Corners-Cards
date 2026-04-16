@@ -1,0 +1,41 @@
+{{ define "product" }}{{ template "base" . }}{{ end }}
+
+{{ define "content" }}
+<section class="section">
+  <div class="wrap product-layout">
+    <div class="product-art large accent-{{ .Product.Accent }}">
+      <span>{{ .Product.Team }}</span>
+      <strong>{{ if .Product.Player }}{{ .Product.Player }}{{ else }}{{ .Product.Title }}{{ end }}</strong>
+      <p>{{ .Product.Brand }} / {{ .Product.SetName }}</p>
+    </div>
+    <div class="product-detail">
+      <div class="product-meta">
+        <span class="tag">{{ .Product.Sport }}</span>
+        {{ if .Product.Grade }}<span class="tag">{{ .Product.Grade }}</span>{{ end }}
+        {{ if .Product.LiveExclusive }}<span class="tag live">Live Stream Priority</span>{{ end }}
+      </div>
+      <h1>{{ .Product.Title }}</h1>
+      <p class="lede">{{ .Product.Description }}</p>
+      <strong class="price-xl">{{ currency .Product.PriceCents }}</strong>
+      <div class="actions">
+        <button class="button gold add-to-cart"
+          data-product-id="{{ .Product.ID }}"
+          data-slug="{{ .Product.Slug }}"
+          data-title="{{ .Product.Title }}"
+          data-summary="{{ .Product.Summary }}"
+          data-price="{{ .Product.PriceCents }}"
+          data-accent="{{ .Product.Accent }}">
+          Add to Cart
+        </button>
+        <a class="button dark" href="/cart">Go to Cart</a>
+      </div>
+      <div class="detail-grid">
+        <div><span>Condition</span><strong>{{ .Product.Condition }}</strong></div>
+        <div><span>Card Number</span><strong>{{ .Product.CardNumber }}</strong></div>
+        <div><span>Year</span><strong>{{ .Product.Year }}</strong></div>
+        <div><span>Quantity</span><strong>{{ .Product.Quantity }}</strong></div>
+      </div>
+    </div>
+  </div>
+</section>
+{{ end }}

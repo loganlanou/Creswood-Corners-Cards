@@ -1,0 +1,126 @@
+{{ define "admin" }}{{ template "base" . }}{{ end }}
+
+{{ define "content" }}
+<section class="page-header">
+  <div class="wrap">
+    <span class="eyebrow">Admin</span>
+    <h1>Products, live selling, accounts, and orders.</h1>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap stat-grid">
+    <article class="panel"><span class="eyebrow">Products</span><h2>{{ .Stats.ProductCount }}</h2></article>
+    <article class="panel"><span class="eyebrow">Orders</span><h2>{{ .Stats.OrderCount }}</h2></article>
+    <article class="panel"><span class="eyebrow">Accounts</span><h2>{{ .Stats.AccountCount }}</h2></article>
+    <article class="panel"><span class="eyebrow">Gross Sales</span><h2>{{ currency .Stats.GrossSales }}</h2></article>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap admin-grid">
+    <form class="panel stack" method="post" action="/admin/live/save">
+      <span class="eyebrow">Live Session</span>
+      <h2>Stream control</h2>
+      <input name="title" value="{{ .Live.Title }}" placeholder="Title">
+      <input name="platform" value="{{ .Live.Platform }}" placeholder="Platform">
+      <input name="stream_url" value="{{ .Live.StreamURL }}" placeholder="Stream URL">
+      <textarea name="pitch" placeholder="Pitch">{{ .Live.Pitch }}</textarea>
+      <textarea name="callout" placeholder="Callout">{{ .Live.Callout }}</textarea>
+      <label class="check"><input type="checkbox" name="is_active" {{ if .Live.IsActive }}checked{{ end }}> Stream active now</label>
+      <button class="button gold" type="submit">Save Live Session</button>
+    </form>
+
+    <form class="panel stack" method="post" action="/admin/product/save">
+      <span class="eyebrow">Inventory</span>
+      <h2>Create product</h2>
+      <input name="title" placeholder="Title">
+      <input name="slug" placeholder="slug-format-title">
+      <input name="sport" value="Football" placeholder="Sport">
+      <input name="player" placeholder="Player">
+      <input name="team" placeholder="Team">
+      <input name="brand" placeholder="Brand">
+      <input name="set_name" placeholder="Set">
+      <input name="year" type="number" placeholder="Year">
+      <input name="card_number" placeholder="Card number">
+      <input name="grade" placeholder="Grade">
+      <input name="condition" placeholder="Condition">
+      <input name="price_cents" type="number" placeholder="Price in cents">
+      <input name="quantity" type="number" value="1" placeholder="Quantity">
+      <input name="accent" placeholder="gold / blue / emerald / crimson">
+      <input name="status" value="active" placeholder="Status">
+      <textarea name="summary" placeholder="Summary"></textarea>
+      <textarea name="description" placeholder="Description"></textarea>
+      <label class="check"><input type="checkbox" name="featured"> Featured</label>
+      <label class="check"><input type="checkbox" name="live_exclusive"> Live priority</label>
+      <button class="button gold" type="submit">Save Product</button>
+    </form>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap admin-grid">
+    <article class="panel">
+      <span class="eyebrow">Registered Accounts</span>
+      <h2>Users</h2>
+      <div class="table-list">
+        {{ range .Users }}
+        <div class="table-row">
+          <div>
+            <strong>{{ .Email }}</strong>
+            <p>{{ .Name }}</p>
+          </div>
+          <span>{{ if .IsAdmin }}Admin{{ else }}Customer{{ end }}</span>
+        </div>
+        {{ end }}
+      </div>
+    </article>
+
+    <article class="panel">
+      <span class="eyebrow">Current Catalog</span>
+      <h2>Products</h2>
+      <div class="table-list">
+        {{ range .Products }}
+        <div class="table-row">
+          <div>
+            <strong>{{ .Title }}</strong>
+            <p>{{ .Status }} / qty {{ .Quantity }}</p>
+          </div>
+          <span>{{ currency .PriceCents }}</span>
+        </div>
+        {{ end }}
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <article class="panel">
+      <span class="eyebrow">Orders</span>
+      <h2>Payment and shipment status</h2>
+      <div class="order-list">
+        {{ range .Orders }}
+        <form class="order-card" method="post" action="/admin/order/update">
+          <input type="hidden" name="order_id" value="{{ .ID }}">
+          <div class="order-top">
+            <div>
+              <strong>{{ .OrderNumber }}</strong>
+              <p>{{ .Email }}</p>
+            </div>
+            <span>{{ currency .TotalCents }}</span>
+          </div>
+          <div class="order-fields">
+            <input name="payment_status" value="{{ .PaymentStatus }}">
+            <input name="fulfillment_status" value="{{ .FulfillmentStatus }}">
+            <input name="shipping_status" value="{{ .ShippingStatus }}">
+          </div>
+          <textarea name="notes" placeholder="Notes">{{ .Notes }}</textarea>
+          <button class="button dark small" type="submit">Update Order</button>
+        </form>
+        {{ end }}
+      </div>
+    </article>
+  </div>
+</section>
+{{ end }}

@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+:root {
+  --background: #08111f;
+  --foreground: #f5f7fb;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family:
+    "Avenir Next",
+    "Segoe UI",
+    "Trebuchet MS",
+    sans-serif;
+}
+
+a,
+button {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease,
+    opacity 180ms ease;
+}
+
+::selection {
+  background: rgba(247, 183, 51, 0.35);
+  color: white;
+}
+
+.font-display {
+  font-family:
+    Impact,
+    Haettenschweiler,
+    "Arial Narrow Bold",
+    sans-serif;
+}
+
+.grid-fade {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.8), transparent 100%);
+}
+
+.card-sheen {
+  position: relative;
+}
+
+.card-sheen::after {
+  position: absolute;
+  inset: -15%;
+  background: linear-gradient(
+    120deg,
+    transparent 18%,
+    rgba(255, 255, 255, 0.2) 32%,
+    transparent 46%
+  );
+  content: "";
+  transform: translateX(-100%);
+  transition: transform 320ms ease;
+}
+
+.card-sheen:hover::after {
+  transform: translateX(100%);
+}

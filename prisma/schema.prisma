@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  SOLD_OUT
+  ARCHIVED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum FulfillmentStatus {
+  UNFULFILLED
+  READY_TO_PACK
+  PACKED
+  SHIPPED
+  DELIVERED
+}
+
+enum ShippingStatus {
+  PENDING
+  LABEL_CREATED
+  IN_TRANSIT
+  DELIVERED
+}
+
+enum OrderSource {
+  WEB
+  WEB_DEMO
+  LIVE_STREAM
+  IN_PERSON
+}
+
+model Product {
+  id            String        @id @default(cuid())
+  slug          String        @unique
+  title         String
+  summary       String
+  description   String
+  sport         String        @default("Football")
+  player        String?
+  team          String?
+  brand         String?
+  setName       String?
+  year          Int?
+  cardNumber    String?
+  grade         String?
+  condition     String?
+  priceCents    Int
+  quantity      Int           @default(1)
+  imageUrl      String?
+  accent        String?
+  featured      Boolean       @default(false)
+  liveExclusive Boolean       @default(false)
+  status        ProductStatus @default(DRAFT)
+  sortOrder     Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  orderItems    OrderItem[]
+}
+
+model LiveSession {
+  id        String   @id @default(cuid())
+  title     String
+  pitch     String
+  callout   String?
+  streamUrl String
+  platform  String   @default("Whatnot")
+  startsAt  DateTime?
+  endsAt    DateTime?
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id                  String             @id @default(cuid())
+  orderNumber         String             @unique
+  email               String
+  customerName        String?
+  clerkUserId         String?
+  source              OrderSource        @default(WEB)
+  paymentStatus       PaymentStatus      @default(PENDING)
+  fulfillmentStatus   FulfillmentStatus  @default(UNFULFILLED)
+  shippingStatus      ShippingStatus     @default(PENDING)
+  subtotalCents       Int
+  totalCents          Int
+  stripeSessionId     String?
+  stripePaymentIntent String?
+  notes               String?
+  shippingAddressJson String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  items               OrderItem[]
+}
+
+model OrderItem {
+  id             String   @id @default(cuid())
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId      String?
+  product        Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productTitle   String
+  productSlug    String?
+  quantity       Int
+  unitPriceCents Int
+}
+
+model AdminGrant {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  label     String?
+  createdAt DateTime @default(now())
+}

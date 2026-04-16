@@ -1,0 +1,15 @@
+{{ define "sign_up" }}{{ template "base" . }}{{ end }}
+
+{{ define "content" }}
+<section class="section auth-wrap">
+  <form method="post" class="panel auth-panel">
+    <span class="eyebrow">Sign Up</span>
+    <h1>Create a customer account.</h1>
+    {{ if .Flash }}<p class="error">{{ .Flash }}</p>{{ end }}
+    <input name="name" placeholder="Full name">
+    <input name="email" type="email" placeholder="Email">
+    <input name="password" type="password" placeholder="Password">
+    <button class="button gold" type="submit">Create Account</button>
+  </form>
+</section>
+{{ end }}
