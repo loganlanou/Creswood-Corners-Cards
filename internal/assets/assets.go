@@ -1,6 +1,6 @@
-package creswoodcornerscards
+package assets
 
 import "embed"
 
 //go:embed web/templates/*.gohtml web/static/css/* web/static/js/*
-var Assets embed.FS
+var FS embed.FS

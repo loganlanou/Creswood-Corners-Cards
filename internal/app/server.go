@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"creswoodcornerscards"
 	"creswoodcornerscards/internal/auth"
+	"creswoodcornerscards/internal/assets"
 	"creswoodcornerscards/internal/config"
 	"creswoodcornerscards/internal/data"
 	"creswoodcornerscards/internal/web"
@@ -47,7 +47,7 @@ type ViewData struct {
 }
 
 func New(cfg config.Config, store *data.Store) (*Server, error) {
-	templateFS, err := fs.Sub(creswoodcornerscards.Assets, "web/templates")
+	templateFS, err := fs.Sub(assets.FS, "web/templates")
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func New(cfg config.Config, store *data.Store) (*Server, error) {
 }
 
 func (s *Server) routes() {
-	staticFS, err := fs.Sub(creswoodcornerscards.Assets, "web/static")
+	staticFS, err := fs.Sub(assets.FS, "web/static")
 	if err != nil {
 		panic(err)
 	}
