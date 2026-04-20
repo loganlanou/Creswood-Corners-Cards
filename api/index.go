@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"sync"
 
-	"creswoodcornerscards/internal/app"
-	"creswoodcornerscards/internal/config"
-	"creswoodcornerscards/internal/data"
+	"creswoodcornerscards/app"
+	"creswoodcornerscards/config"
+	"creswoodcornerscards/data"
 )
 
 var (

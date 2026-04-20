@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"creswoodcornerscards/internal/config"
-	"creswoodcornerscards/internal/data"
+	"creswoodcornerscards/config"
+	"creswoodcornerscards/data"
 )
 
 type Manager struct {

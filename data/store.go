@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"creswoodcornerscards/internal/config"
+	"creswoodcornerscards/config"
 )
 
 type Store struct {

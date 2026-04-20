@@ -4,9 +4,9 @@ import (
 	"log"
 	"net/http"
 
-	"creswoodcornerscards/internal/app"
-	"creswoodcornerscards/internal/config"
-	"creswoodcornerscards/internal/data"
+	"creswoodcornerscards/app"
+	"creswoodcornerscards/config"
+	"creswoodcornerscards/data"
 )
 
 func main() {

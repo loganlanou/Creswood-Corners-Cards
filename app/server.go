@@ -10,11 +10,11 @@ import (
 	"strconv"
 	"strings"
 
-	"creswoodcornerscards/internal/auth"
-	"creswoodcornerscards/internal/assets"
-	"creswoodcornerscards/internal/config"
-	"creswoodcornerscards/internal/data"
-	"creswoodcornerscards/internal/web"
+	"creswoodcornerscards/assets"
+	"creswoodcornerscards/auth"
+	"creswoodcornerscards/config"
+	"creswoodcornerscards/data"
+	"creswoodcornerscards/web"
 )
 
 type Server struct {
