@@ -89,6 +89,13 @@ Functional localhost checks completed against the Go app:
 
 The repo now includes [vercel.json](/home/loganlanou/Creswood-Corners-Cards/vercel.json) and [api/index.go](/home/loganlanou/Creswood-Corners-Cards/api/index.go) so Vercel can route all requests through the Go handler.
 
+Use these import settings:
+
+- Application Preset: `Other`
+- Root Directory: `./`
+- Build Command: leave empty
+- Output Directory: leave empty
+
 Before deploying:
 
 1. Set these environment variables in Vercel:
@@ -115,8 +122,8 @@ DEMO_CHECKOUT
 
 ## Notes
 
-- The previous Next.js implementation still exists in the repo because I did not remove files destructively during the rewrite.
-- The Go application is the active implementation now.
+- The old Next.js implementation has been removed so Vercel does not detect or build the wrong app.
+- The Go application is the only active implementation now.
 - If you want, the next pass can do two focused follow-ups:
-  1. remove the old Next.js files
-  2. wire real Clerk and Stripe integrations into the Go app
+  1. wire real Clerk and Stripe integrations into the Go app
+  2. move data persistence from local SQLite to a production database
