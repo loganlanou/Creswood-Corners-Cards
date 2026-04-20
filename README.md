@@ -6,7 +6,7 @@ Go-based trading card storefront modeled around the structure of `logans3dcreati
 
 - Go `net/http`
 - Server-rendered `html/template`
-- SQLite via `modernc.org/sqlite`
+- In-memory preview data store
 - Cookie sessions with local account registration/login
 - Local demo checkout flow with Stripe-ready config placeholders
 
@@ -17,7 +17,7 @@ Go-based trading card storefront modeled around the structure of `logans3dcreati
 - Product detail pages
 - Live selling page and active live banner
 - Local cart stored in browser `localStorage`
-- Demo checkout that creates tracked orders in SQLite
+- Demo checkout that creates tracked in-memory orders for preview testing
 - Account signup, signin, and session-based auth
 - Admin dashboard for:
   - live session settings
@@ -49,7 +49,7 @@ env GOCACHE=/tmp/go-build go run ./cmd/server
 http://localhost:3000
 ```
 
-For verification in this session, I launched isolated localhost instances on `127.0.0.1:3013` with a temporary SQLite file so route checks would not be affected by earlier test runs.
+For verification in this session, I launched isolated localhost instances on `127.0.0.1:3013`.
 
 ## Default Bootstrap Admin
 
@@ -111,8 +111,7 @@ DEMO_CHECKOUT
 
 2. Decide on data persistence:
 
-- Current local SQLite is fine for localhost.
-- On Vercel, SQLite in `/tmp` is only suitable for temporary testing, not real production persistence.
+- Current preview data is in memory and resets when the function instance resets.
 - Before a real public launch, move the Go app to a persistent database such as Postgres or Turso/libSQL.
 
 3. If you want real auth and payments before launch:

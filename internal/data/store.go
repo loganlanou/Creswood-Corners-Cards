@@ -7,18 +7,35 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
-	_ "modernc.org/sqlite"
 
 	"creswoodcornerscards/internal/config"
 )
 
 type Store struct {
-	DB  *sql.DB
-	cfg config.Config
+	mu            sync.RWMutex
+	cfg           config.Config
+	nextUserID    int64
+	nextProductID int64
+	nextLiveID    int64
+	nextOrderID   int64
+	nextItemID    int64
+	users         map[int64]User
+	usersByEmail  map[string]int64
+	sessions      map[string]session
+	products      map[int64]Product
+	productBySlug map[string]int64
+	live          LiveSession
+	orders        map[int64]Order
+}
+
+type session struct {
+	UserID    int64
+	ExpiresAt time.Time
 }
 
 type User struct {
@@ -94,114 +111,30 @@ type DashboardStats struct {
 	GrossSales   int
 }
 
+type CartLine struct {
+	ProductID int64 `json:"product_id"`
+	Quantity  int   `json:"quantity"`
+}
+
 func Open(cfg config.Config) (*Store, error) {
-	db, err := sql.Open("sqlite", cfg.DatabasePath)
-	if err != nil {
+	store := &Store{
+		cfg:           cfg,
+		users:         map[int64]User{},
+		usersByEmail:  map[string]int64{},
+		sessions:      map[string]session{},
+		products:      map[int64]Product{},
+		productBySlug: map[string]int64{},
+		orders:        map[int64]Order{},
+	}
+	if err := store.ensureBootstrapAdmin(context.Background()); err != nil {
 		return nil, err
 	}
-
-	db.SetMaxOpenConns(1)
-	store := &Store{DB: db, cfg: cfg}
-	if err := store.init(context.Background()); err != nil {
-		return nil, err
-	}
-
+	store.seedProducts()
+	store.seedLiveSession()
 	return store, nil
 }
 
-func (s *Store) init(ctx context.Context) error {
-	schema := []string{
-		`create table if not exists users (
-			id integer primary key autoincrement,
-			email text not null unique,
-			password_hash text not null,
-			name text not null,
-			is_admin integer not null default 0,
-			created_at datetime not null default current_timestamp
-		);`,
-		`create table if not exists sessions (
-			token text primary key,
-			user_id integer not null,
-			created_at datetime not null default current_timestamp,
-			expires_at datetime not null,
-			foreign key(user_id) references users(id) on delete cascade
-		);`,
-		`create table if not exists products (
-			id integer primary key autoincrement,
-			slug text not null unique,
-			title text not null,
-			summary text not null,
-			description text not null,
-			sport text not null,
-			player text not null default '',
-			team text not null default '',
-			brand text not null default '',
-			set_name text not null default '',
-			year integer not null default 0,
-			card_number text not null default '',
-			grade text not null default '',
-			card_condition text not null default '',
-			price_cents integer not null,
-			quantity integer not null default 1,
-			accent text not null default 'gold',
-			featured integer not null default 0,
-			live_exclusive integer not null default 0,
-			status text not null default 'active',
-			created_at datetime not null default current_timestamp,
-			updated_at datetime not null default current_timestamp
-		);`,
-		`create table if not exists live_sessions (
-			id integer primary key autoincrement,
-			title text not null,
-			pitch text not null,
-			callout text not null,
-			stream_url text not null,
-			platform text not null,
-			is_active integer not null default 0,
-			created_at datetime not null default current_timestamp,
-			updated_at datetime not null default current_timestamp
-		);`,
-		`create table if not exists orders (
-			id integer primary key autoincrement,
-			order_number text not null unique,
-			email text not null,
-			customer_name text not null default '',
-			source text not null,
-			payment_status text not null,
-			fulfillment_status text not null,
-			shipping_status text not null,
-			total_cents integer not null,
-			notes text not null default '',
-			created_at datetime not null default current_timestamp
-		);`,
-		`create table if not exists order_items (
-			id integer primary key autoincrement,
-			order_id integer not null,
-			product_id integer not null,
-			product_title text not null,
-			product_slug text not null,
-			quantity integer not null,
-			unit_price integer not null,
-			foreign key(order_id) references orders(id) on delete cascade
-		);`,
-	}
-
-	for _, stmt := range schema {
-		if _, err := s.DB.ExecContext(ctx, stmt); err != nil {
-			return err
-		}
-	}
-
-	if err := s.ensureBootstrapAdmin(ctx); err != nil {
-		return err
-	}
-	if err := s.seedProducts(ctx); err != nil {
-		return err
-	}
-	if err := s.seedLiveSession(ctx); err != nil {
-		return err
-	}
-
+func (s *Store) Close() error {
 	return nil
 }
 
@@ -209,39 +142,18 @@ func (s *Store) ensureBootstrapAdmin(ctx context.Context) error {
 	if s.cfg.AdminBootstrapEmail == "" {
 		return nil
 	}
-
-	_, err := s.FindUserByEmail(ctx, s.cfg.AdminBootstrapEmail)
-	if err == nil {
-		_, err = s.DB.ExecContext(ctx, `update users set is_admin = 1 where email = ?`, s.cfg.AdminBootstrapEmail)
-		return err
+	if user, err := s.FindUserByEmail(ctx, s.cfg.AdminBootstrapEmail); err == nil {
+		user.IsAdmin = true
+		s.mu.Lock()
+		s.users[user.ID] = user
+		s.mu.Unlock()
+		return nil
 	}
-	if !errors.Is(err, sql.ErrNoRows) {
-		return err
-	}
-
-	hash, err := bcrypt.GenerateFromPassword([]byte(s.cfg.AdminBootstrapPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	_, err = s.DB.ExecContext(ctx,
-		`insert into users (email, password_hash, name, is_admin) values (?, ?, ?, 1)`,
-		s.cfg.AdminBootstrapEmail,
-		string(hash),
-		"Store Owner",
-	)
+	_, err := s.CreateUser(ctx, "Store Owner", s.cfg.AdminBootstrapEmail, s.cfg.AdminBootstrapPassword)
 	return err
 }
 
-func (s *Store) seedProducts(ctx context.Context) error {
-	var count int
-	if err := s.DB.QueryRowContext(ctx, `select count(*) from products`).Scan(&count); err != nil {
-		return err
-	}
-	if count > 0 {
-		return nil
-	}
-
+func (s *Store) seedProducts() {
 	products := []Product{
 		{Slug: "jayden-daniels-prizm-rc-gold-wave", Title: "Jayden Daniels Prizm RC Gold Wave", Summary: "Low-number rookie color built to headline both the shop and live stream.", Description: "A flagship rookie listing with clear condition notes, sharp presentation, and immediate buying confidence.", Sport: "Football", Player: "Jayden Daniels", Team: "Washington Commanders", Brand: "Panini Prizm", SetName: "Prizm Football", Year: 2024, CardNumber: "312", Grade: "Raw", Condition: "Near Mint", PriceCents: 32900, Quantity: 1, Accent: "gold", Featured: true, LiveExclusive: true, Status: "active"},
 		{Slug: "cj-stroud-downtown-sgc-10", Title: "C.J. Stroud Downtown SGC 10", Summary: "Premium slab inventory to anchor the homepage and featured rails.", Description: "High-end inventory gives the storefront trust and average order value. This slab acts as a premium centerpiece.", Sport: "Football", Player: "C.J. Stroud", Team: "Houston Texans", Brand: "Donruss", SetName: "Downtown", Year: 2023, CardNumber: "DT-7", Grade: "SGC 10", Condition: "Gem Mint", PriceCents: 79900, Quantity: 1, Accent: "crimson", Featured: true, Status: "active"},
@@ -250,56 +162,42 @@ func (s *Store) seedProducts(ctx context.Context) error {
 		{Slug: "malik-nabers-optic-holo-rc", Title: "Malik Nabers Optic Holo RC", Summary: "Popular rookie profile that keeps the grid feeling current.", Description: "Designed as a flexible inventory piece for homepage, catalog, and live modules.", Sport: "Football", Player: "Malik Nabers", Team: "New York Giants", Brand: "Donruss Optic", SetName: "Optic Football", Year: 2024, CardNumber: "214", Grade: "Raw", Condition: "Near Mint", PriceCents: 12900, Quantity: 3, Accent: "violet", Status: "active"},
 		{Slug: "rome-odunze-prizm-silver-rc", Title: "Rome Odunze Prizm Silver RC", Summary: "Affordable parallel for a healthier catalog price spread.", Description: "Not every listing should be a grail. This card supports basket building and easier first purchases.", Sport: "Football", Player: "Rome Odunze", Team: "Chicago Bears", Brand: "Panini Prizm", SetName: "Prizm Football", Year: 2024, CardNumber: "341", Grade: "Raw", Condition: "Near Mint", PriceCents: 8900, Quantity: 4, Accent: "slate", Status: "active"},
 	}
-
-	for _, p := range products {
-		_, err := s.DB.ExecContext(ctx, `insert into products
-			(slug, title, summary, description, sport, player, team, brand, set_name, year, card_number, grade, card_condition, price_cents, quantity, accent, featured, live_exclusive, status)
-			values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			p.Slug, p.Title, p.Summary, p.Description, p.Sport, p.Player, p.Team, p.Brand, p.SetName, p.Year, p.CardNumber, p.Grade, p.Condition, p.PriceCents, p.Quantity, p.Accent, boolInt(p.Featured), boolInt(p.LiveExclusive), p.Status,
-		)
-		if err != nil {
-			return err
-		}
+	for _, product := range products {
+		_ = s.UpsertProduct(context.Background(), product)
 	}
-	return nil
 }
 
-func (s *Store) seedLiveSession(ctx context.Context) error {
-	var count int
-	if err := s.DB.QueryRowContext(ctx, `select count(*) from live_sessions`).Scan(&count); err != nil {
-		return err
+func (s *Store) seedLiveSession() {
+	s.live = LiveSession{
+		ID:        1,
+		Title:     "Friday Night Football Heat Check",
+		Pitch:     "Live singles, rookie color, and quick-hit offers built to move inventory fast.",
+		Callout:   "Running live now and mirrored from the storefront banner.",
+		StreamURL: "https://www.whatnot.com/",
+		Platform:  "Whatnot",
+		IsActive:  true,
 	}
-	if count > 0 {
-		return nil
-	}
-
-	_, err := s.DB.ExecContext(ctx,
-		`insert into live_sessions (title, pitch, callout, stream_url, platform, is_active) values (?, ?, ?, ?, ?, 1)`,
-		"Friday Night Football Heat Check",
-		"Live singles, rookie color, and quick-hit offers built to move inventory fast.",
-		"Running live now and mirrored from the storefront banner.",
-		"https://www.whatnot.com/",
-		"Whatnot",
-	)
-	return err
+	s.nextLiveID = 1
 }
 
 func (s *Store) FindUserByEmail(ctx context.Context, email string) (User, error) {
-	row := s.DB.QueryRowContext(ctx, `select id, email, password_hash, name, is_admin, created_at from users where lower(email) = ?`, normalizeEmail(email))
-	return scanUser(row)
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	id, ok := s.usersByEmail[normalizeEmail(email)]
+	if !ok {
+		return User{}, sql.ErrNoRows
+	}
+	return s.users[id], nil
 }
 
 func (s *Store) FindUserByID(ctx context.Context, id int64) (User, error) {
-	row := s.DB.QueryRowContext(ctx, `select id, email, password_hash, name, is_admin, created_at from users where id = ?`, id)
-	return scanUser(row)
-}
-
-func scanUser(scanner interface{ Scan(dest ...any) error }) (User, error) {
-	var u User
-	var isAdmin int
-	err := scanner.Scan(&u.ID, &u.Email, &u.Password, &u.Name, &isAdmin, &u.CreatedAt)
-	u.IsAdmin = isAdmin == 1
-	return u, err
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	user, ok := s.users[id]
+	if !ok {
+		return User{}, sql.ErrNoRows
+	}
+	return user, nil
 }
 
 func (s *Store) CreateUser(ctx context.Context, name, email, password string) (User, error) {
@@ -311,26 +209,27 @@ func (s *Store) CreateUser(ctx context.Context, name, email, password string) (U
 	if err != nil {
 		return User{}, err
 	}
-
-	isAdmin := 0
-	if _, ok := s.cfg.AllowedAdminEmails[email]; ok || email == s.cfg.AdminBootstrapEmail {
-		isAdmin = 1
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, exists := s.usersByEmail[email]; exists {
+		return User{}, errors.New("email already registered")
 	}
-
-	result, err := s.DB.ExecContext(ctx,
-		`insert into users (email, password_hash, name, is_admin) values (?, ?, ?, ?)`,
-		email, string(hash), strings.TrimSpace(name), isAdmin,
-	)
-	if err != nil {
-		return User{}, err
+	s.nextUserID++
+	_, allowAdmin := s.cfg.AllowedAdminEmails[email]
+	user := User{
+		ID:        s.nextUserID,
+		Email:     email,
+		Password:  string(hash),
+		Name:      strings.TrimSpace(name),
+		IsAdmin:   allowAdmin || email == s.cfg.AdminBootstrapEmail,
+		CreatedAt: time.Now(),
 	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		return User{}, err
+	if user.Name == "" {
+		user.Name = "Registered account"
 	}
-
-	return s.FindUserByID(ctx, id)
+	s.users[user.ID] = user
+	s.usersByEmail[email] = user.ID
+	return user, nil
 }
 
 func (s *Store) AuthenticateUser(ctx context.Context, email, password string) (User, error) {
@@ -346,270 +245,246 @@ func (s *Store) AuthenticateUser(ctx context.Context, email, password string) (U
 
 func (s *Store) CreateSession(ctx context.Context, userID int64) (string, error) {
 	token := uuid.NewString()
-	_, err := s.DB.ExecContext(ctx,
-		`insert into sessions (token, user_id, expires_at) values (?, ?, ?)`,
-		token, userID, time.Now().Add(30*24*time.Hour),
-	)
-	return token, err
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.users[userID]; !ok {
+		return "", sql.ErrNoRows
+	}
+	s.sessions[token] = session{UserID: userID, ExpiresAt: time.Now().Add(30 * 24 * time.Hour)}
+	return token, nil
 }
 
 func (s *Store) FindUserBySession(ctx context.Context, token string) (User, error) {
-	row := s.DB.QueryRowContext(ctx, `select users.id, users.email, users.password_hash, users.name, users.is_admin, users.created_at
-		from sessions join users on users.id = sessions.user_id
-		where sessions.token = ? and sessions.expires_at > ?`, token, time.Now())
-	return scanUser(row)
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	session, ok := s.sessions[token]
+	if !ok || time.Now().After(session.ExpiresAt) {
+		return User{}, sql.ErrNoRows
+	}
+	user, ok := s.users[session.UserID]
+	if !ok {
+		return User{}, sql.ErrNoRows
+	}
+	return user, nil
 }
 
 func (s *Store) DeleteSession(ctx context.Context, token string) error {
-	_, err := s.DB.ExecContext(ctx, `delete from sessions where token = ?`, token)
-	return err
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.sessions, token)
+	return nil
 }
 
 func (s *Store) FeaturedProducts(ctx context.Context) ([]Product, error) {
-	rows, err := s.DB.QueryContext(ctx, `select id, slug, title, summary, description, sport, player, team, brand, set_name, year, card_number, grade, card_condition, price_cents, quantity, accent, featured, live_exclusive, status from products where status = 'active' and featured = 1 order by id asc limit 4`)
+	products, err := s.Products(ctx)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-	return scanProducts(rows)
+	var featured []Product
+	for _, product := range products {
+		if product.Featured {
+			featured = append(featured, product)
+		}
+	}
+	if len(featured) > 4 {
+		featured = featured[:4]
+	}
+	return featured, nil
 }
 
 func (s *Store) Products(ctx context.Context) ([]Product, error) {
-	rows, err := s.DB.QueryContext(ctx, `select id, slug, title, summary, description, sport, player, team, brand, set_name, year, card_number, grade, card_condition, price_cents, quantity, accent, featured, live_exclusive, status from products where status != 'archived' order by featured desc, id asc`)
-	if err != nil {
-		return nil, err
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	products := make([]Product, 0, len(s.products))
+	for _, product := range s.products {
+		if product.Status != "archived" {
+			products = append(products, product)
+		}
 	}
-	defer rows.Close()
-	return scanProducts(rows)
+	sort.Slice(products, func(i, j int) bool {
+		if products[i].Featured != products[j].Featured {
+			return products[i].Featured
+		}
+		return products[i].ID < products[j].ID
+	})
+	return products, nil
 }
 
 func (s *Store) ProductBySlug(ctx context.Context, slug string) (Product, error) {
-	row := s.DB.QueryRowContext(ctx, `select id, slug, title, summary, description, sport, player, team, brand, set_name, year, card_number, grade, card_condition, price_cents, quantity, accent, featured, live_exclusive, status from products where slug = ?`, slug)
-	return scanProduct(row)
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	id, ok := s.productBySlug[slug]
+	if !ok {
+		return Product{}, sql.ErrNoRows
+	}
+	return s.products[id], nil
 }
 
 func (s *Store) ProductByID(ctx context.Context, id int64) (Product, error) {
-	row := s.DB.QueryRowContext(ctx, `select id, slug, title, summary, description, sport, player, team, brand, set_name, year, card_number, grade, card_condition, price_cents, quantity, accent, featured, live_exclusive, status from products where id = ?`, id)
-	return scanProduct(row)
-}
-
-func scanProducts(rows *sql.Rows) ([]Product, error) {
-	var items []Product
-	for rows.Next() {
-		item, err := scanProduct(rows)
-		if err != nil {
-			return nil, err
-		}
-		items = append(items, item)
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	product, ok := s.products[id]
+	if !ok {
+		return Product{}, sql.ErrNoRows
 	}
-	return items, rows.Err()
-}
-
-func scanProduct(scanner interface{ Scan(dest ...any) error }) (Product, error) {
-	var p Product
-	var featured, live int
-	err := scanner.Scan(&p.ID, &p.Slug, &p.Title, &p.Summary, &p.Description, &p.Sport, &p.Player, &p.Team, &p.Brand, &p.SetName, &p.Year, &p.CardNumber, &p.Grade, &p.Condition, &p.PriceCents, &p.Quantity, &p.Accent, &featured, &live, &p.Status)
-	p.Featured = featured == 1
-	p.LiveExclusive = live == 1
-	return p, err
+	return product, nil
 }
 
 func (s *Store) ActiveLiveSession(ctx context.Context) (LiveSession, error) {
-	row := s.DB.QueryRowContext(ctx, `select id, title, pitch, callout, stream_url, platform, is_active from live_sessions order by id desc limit 1`)
-	var live LiveSession
-	var active int
-	err := row.Scan(&live.ID, &live.Title, &live.Pitch, &live.Callout, &live.StreamURL, &live.Platform, &active)
-	live.IsActive = active == 1
-	return live, err
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.live, nil
 }
 
 func (s *Store) SaveLiveSession(ctx context.Context, live LiveSession) error {
-	var count int
-	if err := s.DB.QueryRowContext(ctx, `select count(*) from live_sessions`).Scan(&count); err != nil {
-		return err
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if live.ID == 0 {
+		live.ID = s.live.ID
 	}
-	if count == 0 {
-		_, err := s.DB.ExecContext(ctx, `insert into live_sessions (title, pitch, callout, stream_url, platform, is_active) values (?, ?, ?, ?, ?, ?)`,
-			live.Title, live.Pitch, live.Callout, live.StreamURL, live.Platform, boolInt(live.IsActive))
-		return err
+	if live.ID == 0 {
+		s.nextLiveID++
+		live.ID = s.nextLiveID
 	}
-	_, err := s.DB.ExecContext(ctx, `update live_sessions set title = ?, pitch = ?, callout = ?, stream_url = ?, platform = ?, is_active = ?, updated_at = current_timestamp where id = (select id from live_sessions order by id desc limit 1)`,
-		live.Title, live.Pitch, live.Callout, live.StreamURL, live.Platform, boolInt(live.IsActive))
-	return err
+	s.live = live
+	return nil
 }
 
-func (s *Store) UpsertProduct(ctx context.Context, p Product) error {
-	if p.ID == 0 {
-		_, err := s.DB.ExecContext(ctx, `insert into products (slug, title, summary, description, sport, player, team, brand, set_name, year, card_number, grade, card_condition, price_cents, quantity, accent, featured, live_exclusive, status)
-			values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			p.Slug, p.Title, p.Summary, p.Description, p.Sport, p.Player, p.Team, p.Brand, p.SetName, p.Year, p.CardNumber, p.Grade, p.Condition, p.PriceCents, p.Quantity, p.Accent, boolInt(p.Featured), boolInt(p.LiveExclusive), p.Status)
-		return err
+func (s *Store) UpsertProduct(ctx context.Context, product Product) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if product.Slug == "" || product.Title == "" {
+		return errors.New("product slug and title are required")
 	}
-
-	_, err := s.DB.ExecContext(ctx, `update products set slug=?, title=?, summary=?, description=?, sport=?, player=?, team=?, brand=?, set_name=?, year=?, card_number=?, grade=?, card_condition=?, price_cents=?, quantity=?, accent=?, featured=?, live_exclusive=?, status=?, updated_at=current_timestamp where id=?`,
-		p.Slug, p.Title, p.Summary, p.Description, p.Sport, p.Player, p.Team, p.Brand, p.SetName, p.Year, p.CardNumber, p.Grade, p.Condition, p.PriceCents, p.Quantity, p.Accent, boolInt(p.Featured), boolInt(p.LiveExclusive), p.Status, p.ID)
-	return err
+	if product.Sport == "" {
+		product.Sport = "Football"
+	}
+	if product.Status == "" {
+		product.Status = "active"
+	}
+	if product.Accent == "" {
+		product.Accent = "gold"
+	}
+	if product.ID == 0 {
+		s.nextProductID++
+		product.ID = s.nextProductID
+	} else if existing, ok := s.products[product.ID]; ok && existing.Slug != product.Slug {
+		delete(s.productBySlug, existing.Slug)
+	}
+	s.products[product.ID] = product
+	s.productBySlug[product.Slug] = product.ID
+	return nil
 }
 
 func (s *Store) CreateOrder(ctx context.Context, email, customerName string, cart []CartLine) (Order, error) {
-	tx, err := s.DB.BeginTx(ctx, nil)
-	if err != nil {
-		return Order{}, err
+	if strings.TrimSpace(email) == "" {
+		return Order{}, errors.New("email is required")
 	}
-	defer tx.Rollback()
-
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var items []OrderItem
 	total := 0
-	lines := make([]OrderItem, 0, len(cart))
 	for _, line := range cart {
-		product, err := productByIDTx(ctx, tx, line.ProductID)
-		if err != nil {
-			return Order{}, err
+		product, ok := s.products[line.ProductID]
+		if !ok {
+			return Order{}, errors.New("product not found")
 		}
 		if line.Quantity < 1 {
 			line.Quantity = 1
 		}
-		total += product.PriceCents * line.Quantity
-		lines = append(lines, OrderItem{
+		s.nextItemID++
+		items = append(items, OrderItem{
+			ID:           s.nextItemID,
 			ProductID:    product.ID,
 			ProductTitle: product.Title,
 			ProductSlug:  product.Slug,
 			Quantity:     line.Quantity,
 			UnitPrice:    product.PriceCents,
 		})
+		total += product.PriceCents * line.Quantity
 	}
-
-	result, err := tx.ExecContext(ctx, `insert into orders (order_number, email, customer_name, source, payment_status, fulfillment_status, shipping_status, total_cents) values (?, ?, ?, 'web_demo', 'paid', 'ready_to_pack', 'pending', ?)`,
-		fmt.Sprintf("CCC-%d", time.Now().UnixNano()/1_000_000), normalizeEmail(email), customerName, total)
-	if err != nil {
-		return Order{}, err
+	if len(items) == 0 {
+		return Order{}, errors.New("cart is empty")
 	}
-	orderID, err := result.LastInsertId()
-	if err != nil {
-		return Order{}, err
+	s.nextOrderID++
+	order := Order{
+		ID:                s.nextOrderID,
+		OrderNumber:       fmt.Sprintf("CCC-%d", time.Now().UnixNano()/1_000_000),
+		Email:             normalizeEmail(email),
+		CustomerName:      strings.TrimSpace(customerName),
+		Source:            "web_demo",
+		PaymentStatus:     "paid",
+		FulfillmentStatus: "ready_to_pack",
+		ShippingStatus:    "pending",
+		TotalCents:        total,
+		CreatedAt:         time.Now(),
+		Items:             items,
 	}
-
-	for _, line := range lines {
-		if _, err := tx.ExecContext(ctx, `insert into order_items (order_id, product_id, product_title, product_slug, quantity, unit_price) values (?, ?, ?, ?, ?, ?)`,
-			orderID, line.ProductID, line.ProductTitle, line.ProductSlug, line.Quantity, line.UnitPrice); err != nil {
-			return Order{}, err
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return Order{}, err
-	}
-	return s.OrderByID(ctx, orderID)
-}
-
-func productByIDTx(ctx context.Context, tx *sql.Tx, id int64) (Product, error) {
-	row := tx.QueryRowContext(ctx, `select id, slug, title, summary, description, sport, player, team, brand, set_name, year, card_number, grade, card_condition, price_cents, quantity, accent, featured, live_exclusive, status from products where id = ?`, id)
-	return scanProduct(row)
-}
-
-type CartLine struct {
-	ProductID int64 `json:"product_id"`
-	Quantity  int   `json:"quantity"`
+	s.orders[order.ID] = order
+	return order, nil
 }
 
 func (s *Store) OrderByID(ctx context.Context, id int64) (Order, error) {
-	row := s.DB.QueryRowContext(ctx, `select id, order_number, email, customer_name, source, payment_status, fulfillment_status, shipping_status, total_cents, notes, created_at from orders where id = ?`, id)
-	var order Order
-	if err := row.Scan(&order.ID, &order.OrderNumber, &order.Email, &order.CustomerName, &order.Source, &order.PaymentStatus, &order.FulfillmentStatus, &order.ShippingStatus, &order.TotalCents, &order.Notes, &order.CreatedAt); err != nil {
-		return Order{}, err
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	order, ok := s.orders[id]
+	if !ok {
+		return Order{}, sql.ErrNoRows
 	}
-	items, err := s.orderItems(ctx, id)
-	if err != nil {
-		return Order{}, err
-	}
-	order.Items = items
 	return order, nil
 }
 
 func (s *Store) Orders(ctx context.Context) ([]Order, error) {
-	rows, err := s.DB.QueryContext(ctx, `select id, order_number, email, customer_name, source, payment_status, fulfillment_status, shipping_status, total_cents, notes, created_at from orders order by created_at desc`)
-	if err != nil {
-		return nil, err
-	}
-
-	var orders []Order
-	for rows.Next() {
-		var order Order
-		if err := rows.Scan(&order.ID, &order.OrderNumber, &order.Email, &order.CustomerName, &order.Source, &order.PaymentStatus, &order.FulfillmentStatus, &order.ShippingStatus, &order.TotalCents, &order.Notes, &order.CreatedAt); err != nil {
-			rows.Close()
-			return nil, err
-		}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	orders := make([]Order, 0, len(s.orders))
+	for _, order := range s.orders {
 		orders = append(orders, order)
 	}
-	if err := rows.Err(); err != nil {
-		rows.Close()
-		return nil, err
-	}
-	rows.Close()
-
-	for i := range orders {
-		items, err := s.orderItems(ctx, orders[i].ID)
-		if err != nil {
-			return nil, err
-		}
-		orders[i].Items = items
-	}
-
+	sort.Slice(orders, func(i, j int) bool {
+		return orders[i].CreatedAt.After(orders[j].CreatedAt)
+	})
 	return orders, nil
 }
 
-func (s *Store) orderItems(ctx context.Context, orderID int64) ([]OrderItem, error) {
-	rows, err := s.DB.QueryContext(ctx, `select id, product_id, product_title, product_slug, quantity, unit_price from order_items where order_id = ?`, orderID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []OrderItem
-	for rows.Next() {
-		var item OrderItem
-		if err := rows.Scan(&item.ID, &item.ProductID, &item.ProductTitle, &item.ProductSlug, &item.Quantity, &item.UnitPrice); err != nil {
-			return nil, err
-		}
-		items = append(items, item)
-	}
-	return items, rows.Err()
-}
-
 func (s *Store) UpdateOrder(ctx context.Context, orderID int64, payment, fulfillment, shipping, notes string) error {
-	_, err := s.DB.ExecContext(ctx, `update orders set payment_status=?, fulfillment_status=?, shipping_status=?, notes=? where id=?`,
-		payment, fulfillment, shipping, notes, orderID)
-	return err
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	order, ok := s.orders[orderID]
+	if !ok {
+		return sql.ErrNoRows
+	}
+	order.PaymentStatus = payment
+	order.FulfillmentStatus = fulfillment
+	order.ShippingStatus = shipping
+	order.Notes = notes
+	s.orders[orderID] = order
+	return nil
 }
 
 func (s *Store) Users(ctx context.Context) ([]User, error) {
-	rows, err := s.DB.QueryContext(ctx, `select id, email, password_hash, name, is_admin, created_at from users order by created_at desc`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var users []User
-	for rows.Next() {
-		user, err := scanUser(rows)
-		if err != nil {
-			return nil, err
-		}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	users := make([]User, 0, len(s.users))
+	for _, user := range s.users {
 		users = append(users, user)
 	}
-	return users, rows.Err()
+	sort.Slice(users, func(i, j int) bool {
+		return users[i].CreatedAt.After(users[j].CreatedAt)
+	})
+	return users, nil
 }
 
 func (s *Store) DashboardStats(ctx context.Context) (DashboardStats, error) {
-	var stats DashboardStats
-	if err := s.DB.QueryRowContext(ctx, `select count(*) from products`).Scan(&stats.ProductCount); err != nil {
-		return stats, err
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	stats := DashboardStats{
+		ProductCount: len(s.products),
+		OrderCount:   len(s.orders),
+		AccountCount: len(s.users),
 	}
-	if err := s.DB.QueryRowContext(ctx, `select count(*) from orders`).Scan(&stats.OrderCount); err != nil {
-		return stats, err
-	}
-	if err := s.DB.QueryRowContext(ctx, `select count(*) from users`).Scan(&stats.AccountCount); err != nil {
-		return stats, err
-	}
-	if err := s.DB.QueryRowContext(ctx, `select coalesce(sum(total_cents), 0) from orders`).Scan(&stats.GrossSales); err != nil {
-		return stats, err
+	for _, order := range s.orders {
+		stats.GrossSales += order.TotalCents
 	}
 	return stats, nil
 }
@@ -618,25 +493,18 @@ func normalizeEmail(value string) string {
 	return strings.ToLower(strings.TrimSpace(value))
 }
 
-func boolInt(value bool) int {
-	if value {
-		return 1
-	}
-	return 0
-}
-
 func UniqueTeams(products []Product) []string {
 	seen := map[string]struct{}{}
 	var teams []string
-	for _, p := range products {
-		if p.Team == "" {
+	for _, product := range products {
+		if product.Team == "" {
 			continue
 		}
-		if _, ok := seen[p.Team]; ok {
+		if _, ok := seen[product.Team]; ok {
 			continue
 		}
-		seen[p.Team] = struct{}{}
-		teams = append(teams, p.Team)
+		seen[product.Team] = struct{}{}
+		teams = append(teams, product.Team)
 	}
 	sort.Strings(teams)
 	return teams

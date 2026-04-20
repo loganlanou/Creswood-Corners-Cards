@@ -17,10 +17,6 @@ var (
 
 func initHandler() {
 	cfg := config.Load()
-	if cfg.DatabasePath == "./cards.db" {
-		cfg.DatabasePath = "/tmp/cards.db"
-	}
-
 	store, err := data.Open(cfg)
 	if err != nil {
 		initErr = err
