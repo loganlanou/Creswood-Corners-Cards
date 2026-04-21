@@ -6,7 +6,7 @@
     <div>
       <span class="eyebrow">Modeled on modern direct-to-consumer storefront patterns</span>
       <h1>A cleaner football card shop built for both website sales and live streams.</h1>
-      <p>The structure is intentionally similar to the reference site: simple hero, obvious navigation, featured products, value sections, and clear account/cart entry points. The difference is that this one is tuned for football trading cards and live selling workflows.</p>
+      <p>Football singles, rookies, autos, and raw-card Featured Drops with clear account, cart, and live-selling paths.</p>
       <div class="actions">
         <a class="button gold" href="/shop">Explore Products</a>
         <a class="button dark" href="/live">Open Live Selling</a>
@@ -17,7 +17,7 @@
         {{ range .Featured }}
         <article class="mini-card accent-{{ .Accent }}">
           <span>{{ .Team }}</span>
-          <strong>{{ .Player }}</strong>
+          <strong>{{ .PlayerName }}</strong>
           <p>{{ .Title }}</p>
           <em>{{ currency .PriceCents }}</em>
         </article>
@@ -31,7 +31,7 @@
   <div class="wrap">
     <div class="section-head">
       <div>
-        <span class="eyebrow">Featured Products</span>
+        <span class="eyebrow">Featured Drops</span>
         <h2>Inventory that drives clicks, claims, and checkout.</h2>
       </div>
       <a href="/shop">View full catalog</a>
@@ -39,10 +39,24 @@
     <div class="product-grid">
       {{ range .Featured }}
       <article class="product-card">
-        <div class="product-art accent-{{ .Accent }}">
-          <span>{{ .Team }}</span>
-          <strong>{{ if .Player }}{{ .Player }}{{ else }}{{ .Title }}{{ end }}</strong>
-          <p>{{ .Brand }}</p>
+        <div class="card-image-wrap product-art accent-{{ .Accent }}">
+          {{ if .ImageURL }}
+            <img src="{{ .ImageURL }}" alt="{{ .Title }}">
+          {{ else }}
+            <div class="card-placeholder">
+              <span>{{ .Year }}</span>
+              <strong>{{ if .PlayerName }}{{ .PlayerName }}{{ else }}{{ .Title }}{{ end }}</strong>
+              <p>{{ .CardType }}</p>
+            </div>
+          {{ end }}
+          <div class="team-chip">
+            {{ if .TeamLogoURL }}
+              <img src="{{ .TeamLogoURL }}" alt="{{ .TeamLogoAlt }}">
+            {{ else }}
+              <span class="team-badge">{{ teamInitials .Team }}</span>
+            {{ end }}
+            <span>{{ .Team }}</span>
+          </div>
         </div>
         <div class="product-body">
           <div class="product-meta">
@@ -59,7 +73,8 @@
               data-title="{{ .Title }}"
               data-summary="{{ .Summary }}"
               data-price="{{ .PriceCents }}"
-              data-accent="{{ .Accent }}">
+              data-accent="{{ .Accent }}"
+              data-team="{{ .Team }}">
               Add to Cart
             </button>
           </div>
@@ -75,7 +90,7 @@
     <article>
       <span class="eyebrow">Service Model</span>
       <h3>Direct product sales</h3>
-      <p>List singles, slabs, autos, and featured drops in a standard storefront without giving up modern merchandising.</p>
+      <p>List football singles, raw rookies, autos, inserts, and Featured Drops in a standard storefront without marketplace clutter.</p>
     </article>
     <article>
       <span class="eyebrow">Live Commerce</span>
@@ -85,7 +100,7 @@
     <article>
       <span class="eyebrow">Operations</span>
       <h3>Accounts, orders, and shipment status</h3>
-      <p>Capture registered accounts locally, manage admin access, and update payment, fulfillment, and shipping states from one dashboard.</p>
+      <p>Give customers a clean account path, rewards messaging, demo checkout, and order status foundations for future selling.</p>
     </article>
   </div>
 </section>

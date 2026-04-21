@@ -8,6 +8,13 @@
       <h1>{{ .Order.OrderNumber }}</h1>
       <p>{{ .Order.Email }}</p>
       <strong class="price-xl">{{ currency .Order.TotalCents }}</strong>
+      <div class="totals-list success-totals">
+        <div><span>Subtotal</span><strong>{{ currency .Order.SubtotalCents }}</strong></div>
+        <div><span>Discount</span><strong>{{ currency .Order.DiscountCents }}</strong></div>
+        <div><span>Estimated tax</span><strong>{{ currency .Order.TaxCents }}</strong></div>
+        {{ if .Order.CouponCode }}<div><span>Coupon</span><strong>{{ .Order.CouponCode }}</strong></div>{{ end }}
+      </div>
+      <p class="subtle">This is a demo order. Payment confirmation can be enabled when Stripe is configured.</p>
       <div class="stack">
         {{ range .Order.Items }}
         <div class="table-row">
@@ -21,7 +28,7 @@
       </div>
       <div class="actions">
         <a class="button gold" href="/shop">Keep Shopping</a>
-        <a class="button dark" href="/admin">Admin Dashboard</a>
+        <a class="button dark" href="/account">Account</a>
       </div>
     </article>
   </div>

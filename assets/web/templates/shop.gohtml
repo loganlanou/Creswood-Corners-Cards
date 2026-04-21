@@ -4,29 +4,55 @@
 <section class="page-header">
   <div class="wrap narrow">
     <span class="eyebrow">Shop</span>
-    <h1>Football singles, slabs, rookies, and stream-ready inventory.</h1>
-    <p>Fast browsing with clean product cards and no marketplace clutter.</p>
+    <h1>Football singles, rookies, autos, and stream-ready inventory.</h1>
+    <p>Browse raw-card focused Featured Drops by NFL team and player name.</p>
   </div>
 </section>
 
 <section class="section">
   <div class="wrap">
     <div class="catalog-tools">
-      <input id="catalog-search" type="search" placeholder="Search player, team, brand, or set">
+      <label>
+        <span>Team</span>
+        <select id="catalog-team">
+          <option value="">All teams</option>
+          {{ range .Teams }}<option value="{{ . }}">{{ . }}</option>{{ end }}
+        </select>
+      </label>
+      <label>
+        <span>Player / Name</span>
+        <input id="catalog-search" type="search" placeholder="Search player or card title">
+      </label>
     </div>
     <div class="product-grid" id="catalog-grid">
       {{ range .Products }}
       <article class="product-card"
-        data-search="{{ .Title }} {{ .Player }} {{ .Team }} {{ .Brand }} {{ .SetName }}">
-        <div class="product-art accent-{{ .Accent }}">
-          <span>{{ .Team }}</span>
-          <strong>{{ if .Player }}{{ .Player }}{{ else }}{{ .Title }}{{ end }}</strong>
-          <p>{{ .Brand }}</p>
+        data-team="{{ .Team }}"
+        data-search="{{ .Title }} {{ .PlayerName }} {{ .Player }}">
+        <div class="card-image-wrap product-art accent-{{ .Accent }}">
+          {{ if .ImageURL }}
+            <img src="{{ .ImageURL }}" alt="{{ .Title }}">
+          {{ else }}
+            <div class="card-placeholder">
+              <span>{{ .Year }}</span>
+              <strong>{{ if .PlayerName }}{{ .PlayerName }}{{ else }}{{ .Title }}{{ end }}</strong>
+              <p>{{ .CardType }}</p>
+            </div>
+          {{ end }}
+          <div class="team-chip">
+            {{ if .TeamLogoURL }}
+              <img src="{{ .TeamLogoURL }}" alt="{{ .TeamLogoAlt }}">
+            {{ else }}
+              <span class="team-badge">{{ teamInitials .Team }}</span>
+            {{ end }}
+            <span>{{ .Team }}</span>
+          </div>
         </div>
         <div class="product-body">
           <div class="product-meta">
             {{ if .LiveExclusive }}<span class="tag live">Live Priority</span>{{ end }}
             {{ if .Grade }}<span class="tag">{{ .Grade }}</span>{{ end }}
+            {{ if .CardType }}<span class="tag">{{ .CardType }}</span>{{ end }}
           </div>
           <h3><a href="/shop/{{ .Slug }}">{{ .Title }}</a></h3>
           <p>{{ .Summary }}</p>
@@ -40,7 +66,8 @@
                 data-title="{{ .Title }}"
                 data-summary="{{ .Summary }}"
                 data-price="{{ .PriceCents }}"
-                data-accent="{{ .Accent }}">
+                data-accent="{{ .Accent }}"
+                data-team="{{ .Team }}">
                 Add
               </button>
             </div>

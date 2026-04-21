@@ -55,17 +55,23 @@ type Product struct {
 	Description   string
 	Sport         string
 	Player        string
+	PlayerName    string
 	Team          string
+	TeamLogoURL   string
+	TeamLogoAlt   string
 	Brand         string
 	SetName       string
 	Year          int
 	CardNumber    string
 	Grade         string
 	Condition     string
+	CardType      string
 	PriceCents    int
 	Quantity      int
 	Accent        string
+	ImageURL      string
 	Featured      bool
+	LivePriority  bool
 	LiveExclusive bool
 	Status        string
 }
@@ -80,6 +86,23 @@ type LiveSession struct {
 	IsActive  bool
 }
 
+type LiveEvent struct {
+	Name          string
+	DateTime      string
+	Platform      string
+	Description   string
+	FeaturedCards string
+	Status        string
+	LinkURL       string
+}
+
+type SalesChannel struct {
+	Name     string
+	Type     string
+	Schedule string
+	Notes    string
+}
+
 type Order struct {
 	ID                int64
 	OrderNumber       string
@@ -89,7 +112,11 @@ type Order struct {
 	PaymentStatus     string
 	FulfillmentStatus string
 	ShippingStatus    string
+	SubtotalCents     int
+	DiscountCents     int
+	TaxCents          int
 	TotalCents        int
+	CouponCode        string
 	Notes             string
 	CreatedAt         time.Time
 	Items             []OrderItem
@@ -155,12 +182,12 @@ func (s *Store) ensureBootstrapAdmin(ctx context.Context) error {
 
 func (s *Store) seedProducts() {
 	products := []Product{
-		{Slug: "jayden-daniels-prizm-rc-gold-wave", Title: "Jayden Daniels Prizm RC Gold Wave", Summary: "Low-number rookie color built to headline both the shop and live stream.", Description: "A flagship rookie listing with clear condition notes, sharp presentation, and immediate buying confidence.", Sport: "Football", Player: "Jayden Daniels", Team: "Washington Commanders", Brand: "Panini Prizm", SetName: "Prizm Football", Year: 2024, CardNumber: "312", Grade: "Raw", Condition: "Near Mint", PriceCents: 32900, Quantity: 1, Accent: "gold", Featured: true, LiveExclusive: true, Status: "active"},
-		{Slug: "cj-stroud-downtown-sgc-10", Title: "C.J. Stroud Downtown SGC 10", Summary: "Premium slab inventory to anchor the homepage and featured rails.", Description: "High-end inventory gives the storefront trust and average order value. This slab acts as a premium centerpiece.", Sport: "Football", Player: "C.J. Stroud", Team: "Houston Texans", Brand: "Donruss", SetName: "Downtown", Year: 2023, CardNumber: "DT-7", Grade: "SGC 10", Condition: "Gem Mint", PriceCents: 79900, Quantity: 1, Accent: "crimson", Featured: true, Status: "active"},
-		{Slug: "bo-nix-mosaic-genesis-rc", Title: "Bo Nix Mosaic Genesis RC", Summary: "Mid-tier chase card with fast add-to-cart appeal.", Description: "A strong chase rookie that supports quick catalog browsing and live stream call-outs.", Sport: "Football", Player: "Bo Nix", Team: "Denver Broncos", Brand: "Panini Mosaic", SetName: "Mosaic Football", Year: 2024, CardNumber: "287", Grade: "Raw", Condition: "Near Mint-Mint", PriceCents: 18500, Quantity: 2, Accent: "emerald", Featured: true, Status: "active"},
-		{Slug: "drake-maye-select-field-level-auto", Title: "Drake Maye Select Field Level Auto", Summary: "Autograph inventory that works for direct checkout and stream mentions.", Description: "A balanced autograph listing that supports both normal storefront conversion and live merchandising.", Sport: "Football", Player: "Drake Maye", Team: "New England Patriots", Brand: "Panini Select", SetName: "Select Football", Year: 2024, CardNumber: "FLA-DM", Grade: "Raw", Condition: "Near Mint", PriceCents: 26900, Quantity: 1, Accent: "blue", Status: "active"},
-		{Slug: "malik-nabers-optic-holo-rc", Title: "Malik Nabers Optic Holo RC", Summary: "Popular rookie profile that keeps the grid feeling current.", Description: "Designed as a flexible inventory piece for homepage, catalog, and live modules.", Sport: "Football", Player: "Malik Nabers", Team: "New York Giants", Brand: "Donruss Optic", SetName: "Optic Football", Year: 2024, CardNumber: "214", Grade: "Raw", Condition: "Near Mint", PriceCents: 12900, Quantity: 3, Accent: "violet", Status: "active"},
-		{Slug: "rome-odunze-prizm-silver-rc", Title: "Rome Odunze Prizm Silver RC", Summary: "Affordable parallel for a healthier catalog price spread.", Description: "Not every listing should be a grail. This card supports basket building and easier first purchases.", Sport: "Football", Player: "Rome Odunze", Team: "Chicago Bears", Brand: "Panini Prizm", SetName: "Prizm Football", Year: 2024, CardNumber: "341", Grade: "Raw", Condition: "Near Mint", PriceCents: 8900, Quantity: 4, Accent: "slate", Status: "active"},
+		{Slug: "jayden-daniels-prizm-rc-gold-wave", Title: "Jayden Daniels Prizm RC Gold Wave Raw", Summary: "Low-number rookie color built to headline both the shop and live stream.", Description: "A flagship raw rookie listing with clear condition notes, sharp presentation, and immediate buying confidence.", Sport: "Football", PlayerName: "Jayden Daniels", Team: "Washington Commanders", TeamLogoAlt: "Washington Commanders logo", Brand: "Panini Prizm", SetName: "Prizm Football", Year: 2024, CardNumber: "312", Grade: "Raw", Condition: "Near Mint", CardType: "Rookie Parallel", PriceCents: 32900, Quantity: 1, Accent: "gold", Featured: true, LivePriority: true, LiveExclusive: true, Status: "active"},
+		{Slug: "cj-stroud-downtown-raw", Title: "C.J. Stroud Downtown Raw", Summary: "Short-print insert built to anchor Featured Drops without implying grading.", Description: "A raw Downtown insert placeholder with condition-focused copy, strong photography support, and a clear path to checkout.", Sport: "Football", PlayerName: "C.J. Stroud", Team: "Houston Texans", TeamLogoAlt: "Houston Texans logo", Brand: "Donruss", SetName: "Downtown", Year: 2023, CardNumber: "DT-7", Grade: "Raw", Condition: "Near Mint", CardType: "Insert", PriceCents: 79900, Quantity: 1, Accent: "crimson", Featured: true, Status: "active"},
+		{Slug: "bo-nix-mosaic-genesis-rc", Title: "Bo Nix Mosaic Genesis RC Raw", Summary: "Mid-tier chase card with fast add-to-cart appeal.", Description: "A strong raw chase rookie that supports quick catalog browsing and live stream call-outs.", Sport: "Football", PlayerName: "Bo Nix", Team: "Denver Broncos", TeamLogoAlt: "Denver Broncos logo", Brand: "Panini Mosaic", SetName: "Mosaic Football", Year: 2024, CardNumber: "287", Grade: "Raw", Condition: "Near Mint", CardType: "Rookie Parallel", PriceCents: 18500, Quantity: 2, Accent: "emerald", Featured: true, Status: "active"},
+		{Slug: "drake-maye-select-field-level-auto", Title: "Drake Maye Select Field Level Auto Raw", Summary: "Autograph inventory that works for direct checkout and stream mentions.", Description: "A balanced raw autograph listing that supports both normal storefront conversion and live merchandising.", Sport: "Football", PlayerName: "Drake Maye", Team: "New England Patriots", TeamLogoAlt: "New England Patriots logo", Brand: "Panini Select", SetName: "Select Football", Year: 2024, CardNumber: "FLA-DM", Grade: "Raw", Condition: "Near Mint", CardType: "Auto", PriceCents: 26900, Quantity: 1, Accent: "blue", LivePriority: true, Status: "active"},
+		{Slug: "malik-nabers-optic-holo-rc", Title: "Malik Nabers Optic Holo RC Raw", Summary: "Popular rookie profile that keeps the grid feeling current.", Description: "Designed as a flexible raw rookie inventory piece for homepage, catalog, and live modules.", Sport: "Football", PlayerName: "Malik Nabers", Team: "New York Giants", TeamLogoAlt: "New York Giants logo", Brand: "Donruss Optic", SetName: "Optic Football", Year: 2024, CardNumber: "214", Grade: "Raw", Condition: "Near Mint", CardType: "Rookie Parallel", PriceCents: 12900, Quantity: 3, Accent: "violet", Status: "active"},
+		{Slug: "rome-odunze-prizm-silver-rc", Title: "Rome Odunze Prizm Silver RC Raw", Summary: "Affordable parallel for a healthier catalog price spread.", Description: "Not every listing should be a grail. This raw card supports basket building and easier first purchases.", Sport: "Football", PlayerName: "Rome Odunze", Team: "Chicago Bears", TeamLogoAlt: "Chicago Bears logo", Brand: "Panini Prizm", SetName: "Prizm Football", Year: 2024, CardNumber: "341", Grade: "Raw", Condition: "Near Mint", CardType: "Rookie Parallel", PriceCents: 8900, Quantity: 4, Accent: "slate", Status: "active"},
 	}
 	for _, product := range products {
 		_ = s.UpsertProduct(context.Background(), product)
@@ -169,13 +196,12 @@ func (s *Store) seedProducts() {
 
 func (s *Store) seedLiveSession() {
 	s.live = LiveSession{
-		ID:        1,
-		Title:     "Friday Night Football Heat Check",
-		Pitch:     "Live singles, rookie color, and quick-hit offers built to move inventory fast.",
-		Callout:   "Running live now and mirrored from the storefront banner.",
-		StreamURL: "https://www.whatnot.com/",
-		Platform:  "Whatnot",
-		IsActive:  true,
+		ID:       1,
+		Title:    "Rookie Rush Night",
+		Pitch:    "Live singles, rookie color, autos, and quick-hit offers built for early-stage selling.",
+		Callout:  "Next live link will appear here when a stream platform is configured.",
+		Platform: "Platform TBD",
+		IsActive: false,
 	}
 	s.nextLiveID = 1
 }
@@ -336,6 +362,51 @@ func (s *Store) ActiveLiveSession(ctx context.Context) (LiveSession, error) {
 	return s.live, nil
 }
 
+func (s *Store) LiveEvents(ctx context.Context) ([]LiveEvent, error) {
+	return []LiveEvent{
+		{
+			Name:          "Rookie Rush Night",
+			DateTime:      "Schedule coming soon",
+			Platform:      "Whatnot / TikTok TBD",
+			Description:   "Fast-paced football rookie singles, color, and affordable first-buyer lots.",
+			FeaturedCards: "Jayden Daniels, Bo Nix, Rome Odunze",
+			Status:        "Upcoming",
+		},
+		{
+			Name:          "Sunday Singles Drop",
+			DateTime:      "Sundays, time TBD",
+			Platform:      "Website + live stream",
+			Description:   "Fresh raw-card listings and simple cart checkout support for direct buyers.",
+			FeaturedCards: "Featured Drops and team stacks",
+			Status:        "Upcoming",
+		},
+		{
+			Name:          "Downtown Hunt",
+			DateTime:      "Pop-up event",
+			Platform:      "Live link coming soon",
+			Description:   "Short-print inserts, chase cards, and spotlight teams when inventory is ready.",
+			FeaturedCards: "C.J. Stroud Downtown Raw",
+			Status:        "Upcoming",
+		},
+		{
+			Name:          "Auto Chase Live",
+			DateTime:      "Date TBD",
+			Platform:      "Live link coming soon",
+			Description:   "Autographs and live-priority cards grouped for easy claims and checkout.",
+			FeaturedCards: "Drake Maye Select Auto Raw",
+			Status:        "Upcoming",
+		},
+	}, nil
+}
+
+func (s *Store) SalesChannels(ctx context.Context) ([]SalesChannel, error) {
+	return []SalesChannel{
+		{Name: "Website Shop", Type: "Online", Schedule: "Open 24/7", Notes: "Direct storefront for football singles, Featured Drops, cart testing, and customer accounts."},
+		{Name: "Live Stream Drops", Type: "Live Stream", Schedule: "Schedule coming soon", Notes: "Live link and platform can be added once the selling channel is ready."},
+		{Name: "Local Card Events", Type: "Local Event", Schedule: "Dates coming soon", Notes: "In-person sales channel placeholder for future event announcements."},
+	}, nil
+}
+
 func (s *Store) SaveLiveSession(ctx context.Context, live LiveSession) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -359,6 +430,21 @@ func (s *Store) UpsertProduct(ctx context.Context, product Product) error {
 	if product.Sport == "" {
 		product.Sport = "Football"
 	}
+	if product.PlayerName == "" {
+		product.PlayerName = product.Player
+	}
+	if product.Player == "" {
+		product.Player = product.PlayerName
+	}
+	if product.TeamLogoAlt == "" && product.Team != "" {
+		product.TeamLogoAlt = product.Team + " logo"
+	}
+	if product.LivePriority {
+		product.LiveExclusive = true
+	}
+	if product.LiveExclusive {
+		product.LivePriority = true
+	}
 	if product.Status == "" {
 		product.Status = "active"
 	}
@@ -376,14 +462,14 @@ func (s *Store) UpsertProduct(ctx context.Context, product Product) error {
 	return nil
 }
 
-func (s *Store) CreateOrder(ctx context.Context, email, customerName string, cart []CartLine) (Order, error) {
+func (s *Store) CreateOrder(ctx context.Context, email, customerName string, cart []CartLine, couponCode string) (Order, error) {
 	if strings.TrimSpace(email) == "" {
 		return Order{}, errors.New("email is required")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var items []OrderItem
-	total := 0
+	subtotal := 0
 	for _, line := range cart {
 		product, ok := s.products[line.ProductID]
 		if !ok {
@@ -401,11 +487,15 @@ func (s *Store) CreateOrder(ctx context.Context, email, customerName string, car
 			Quantity:     line.Quantity,
 			UnitPrice:    product.PriceCents,
 		})
-		total += product.PriceCents * line.Quantity
+		subtotal += product.PriceCents * line.Quantity
 	}
 	if len(items) == 0 {
 		return Order{}, errors.New("cart is empty")
 	}
+	couponCode = strings.ToUpper(strings.TrimSpace(couponCode))
+	discount := int(float64(subtotal) * demoDiscountRate(couponCode))
+	tax := 0
+	total := subtotal - discount + tax
 	s.nextOrderID++
 	order := Order{
 		ID:                s.nextOrderID,
@@ -413,10 +503,14 @@ func (s *Store) CreateOrder(ctx context.Context, email, customerName string, car
 		Email:             normalizeEmail(email),
 		CustomerName:      strings.TrimSpace(customerName),
 		Source:            "web_demo",
-		PaymentStatus:     "paid",
-		FulfillmentStatus: "ready_to_pack",
+		PaymentStatus:     "demo_checkout",
+		FulfillmentStatus: "not_started",
 		ShippingStatus:    "pending",
+		SubtotalCents:     subtotal,
+		DiscountCents:     discount,
+		TaxCents:          tax,
 		TotalCents:        total,
+		CouponCode:        couponCode,
 		CreatedAt:         time.Now(),
 		Items:             items,
 	}
@@ -491,6 +585,17 @@ func (s *Store) DashboardStats(ctx context.Context) (DashboardStats, error) {
 
 func normalizeEmail(value string) string {
 	return strings.ToLower(strings.TrimSpace(value))
+}
+
+func demoDiscountRate(code string) float64 {
+	switch strings.ToUpper(strings.TrimSpace(code)) {
+	case "WELCOME10":
+		return 0.10
+	case "LIVE5":
+		return 0.05
+	default:
+		return 0
+	}
 }
 
 func UniqueTeams(products []Product) []string {

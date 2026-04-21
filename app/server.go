@@ -34,6 +34,8 @@ type ViewData struct {
 	Product          data.Product
 	Featured         []data.Product
 	Live             data.LiveSession
+	LiveEvents       []data.LiveEvent
+	SalesChannels    []data.SalesChannel
 	Orders           []data.Order
 	Users            []data.User
 	Stats            data.DashboardStats
@@ -118,11 +120,15 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 	featured, _ := s.store.FeaturedProducts(ctx)
 	products, _ := s.store.Products(ctx)
 	live, _ := s.store.ActiveLiveSession(ctx)
+	liveEvents, _ := s.store.LiveEvents(ctx)
+	salesChannels, _ := s.store.SalesChannels(ctx)
 
 	data := s.baseData(r, "Home")
 	data.Featured = featured
 	data.Products = products
 	data.Live = live
+	data.LiveEvents = liveEvents
+	data.SalesChannels = salesChannels
 	data.Teams = dataPkg.UniqueTeams(products)
 	s.renderer.HTML(w, "home", data)
 }
@@ -154,6 +160,8 @@ func (s *Server) product(w http.ResponseWriter, r *http.Request) {
 func (s *Server) live(w http.ResponseWriter, r *http.Request) {
 	products, _ := s.store.Products(r.Context())
 	live, _ := s.store.ActiveLiveSession(r.Context())
+	liveEvents, _ := s.store.LiveEvents(r.Context())
+	salesChannels, _ := s.store.SalesChannels(r.Context())
 	var featured []data.Product
 	for _, product := range products {
 		if product.LiveExclusive {
@@ -162,6 +170,8 @@ func (s *Server) live(w http.ResponseWriter, r *http.Request) {
 	}
 	data := s.baseData(r, "Live Selling")
 	data.Live = live
+	data.LiveEvents = liveEvents
+	data.SalesChannels = salesChannels
 	data.Products = featured
 	s.renderer.HTML(w, "live", data)
 }
@@ -175,6 +185,7 @@ type checkoutRequest struct {
 	Email        string          `json:"email"`
 	CustomerName string          `json:"customer_name"`
 	Items        []data.CartLine `json:"items"`
+	CouponCode   string          `json:"coupon_code"`
 }
 
 func (s *Server) checkout(w http.ResponseWriter, r *http.Request) {
@@ -191,7 +202,7 @@ func (s *Server) checkout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "email and items are required", http.StatusBadRequest)
 		return
 	}
-	order, err := s.store.CreateOrder(r.Context(), req.Email, req.CustomerName, req.Items)
+	order, err := s.store.CreateOrder(r.Context(), req.Email, req.CustomerName, req.Items, req.CouponCode)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -323,17 +334,23 @@ func (s *Server) saveProduct(w http.ResponseWriter, r *http.Request) {
 		Description:   strings.TrimSpace(r.FormValue("description")),
 		Sport:         strings.TrimSpace(r.FormValue("sport")),
 		Player:        strings.TrimSpace(r.FormValue("player")),
+		PlayerName:    strings.TrimSpace(r.FormValue("player")),
 		Team:          strings.TrimSpace(r.FormValue("team")),
+		TeamLogoURL:   strings.TrimSpace(r.FormValue("team_logo_url")),
+		TeamLogoAlt:   strings.TrimSpace(r.FormValue("team_logo_alt")),
 		Brand:         strings.TrimSpace(r.FormValue("brand")),
 		SetName:       strings.TrimSpace(r.FormValue("set_name")),
 		Year:          year,
 		CardNumber:    strings.TrimSpace(r.FormValue("card_number")),
 		Grade:         strings.TrimSpace(r.FormValue("grade")),
 		Condition:     strings.TrimSpace(r.FormValue("condition")),
+		CardType:      strings.TrimSpace(r.FormValue("card_type")),
 		PriceCents:    price,
 		Quantity:      quantity,
 		Accent:        strings.TrimSpace(r.FormValue("accent")),
+		ImageURL:      strings.TrimSpace(r.FormValue("image_url")),
 		Featured:      r.FormValue("featured") == "on",
+		LivePriority:  r.FormValue("live_exclusive") == "on",
 		LiveExclusive: r.FormValue("live_exclusive") == "on",
 		Status:        strings.TrimSpace(r.FormValue("status")),
 	})

@@ -37,6 +37,27 @@ func (r *Renderer) HTML(w http.ResponseWriter, name string, data any) {
 		"slugjoin": func(parts ...string) string {
 			return strings.Join(parts, " ")
 		},
+		"teamInitials": func(team string) string {
+			words := strings.Fields(team)
+			if len(words) == 0 {
+				return "CC"
+			}
+			if len(words) == 1 {
+				return strings.ToUpper(firstRunes(words[0], 2))
+			}
+			var b strings.Builder
+			for _, word := range words {
+				if word == "" {
+					continue
+				}
+				b.WriteString(strings.ToUpper(firstRunes(word, 1)))
+			}
+			value := b.String()
+			if len(value) > 3 {
+				return value[len(value)-3:]
+			}
+			return value
+		},
 	}
 
 	tmpl, err := template.New(name).Funcs(funcs).Parse(string(baseSrc) + "\n" + string(pageSrc))
@@ -51,4 +72,15 @@ func (r *Renderer) HTML(w http.ResponseWriter, name string, data any) {
 		return
 	}
 	_, _ = w.Write(buf.Bytes())
+}
+
+func firstRunes(value string, count int) string {
+	var b strings.Builder
+	for i, r := range value {
+		if i >= count {
+			break
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }

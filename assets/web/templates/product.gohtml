@@ -3,15 +3,30 @@
 {{ define "content" }}
 <section class="section">
   <div class="wrap product-layout">
-    <div class="product-art large accent-{{ .Product.Accent }}">
-      <span>{{ .Product.Team }}</span>
-      <strong>{{ if .Product.Player }}{{ .Product.Player }}{{ else }}{{ .Product.Title }}{{ end }}</strong>
-      <p>{{ .Product.Brand }} / {{ .Product.SetName }}</p>
+    <div class="card-image-wrap product-art large accent-{{ .Product.Accent }}">
+      {{ if .Product.ImageURL }}
+        <img src="{{ .Product.ImageURL }}" alt="{{ .Product.Title }}">
+      {{ else }}
+        <div class="card-placeholder">
+          <span>{{ .Product.Year }}</span>
+          <strong>{{ if .Product.PlayerName }}{{ .Product.PlayerName }}{{ else }}{{ .Product.Title }}{{ end }}</strong>
+          <p>{{ .Product.CardType }}</p>
+        </div>
+      {{ end }}
+      <div class="team-chip">
+        {{ if .Product.TeamLogoURL }}
+          <img src="{{ .Product.TeamLogoURL }}" alt="{{ .Product.TeamLogoAlt }}">
+        {{ else }}
+          <span class="team-badge">{{ teamInitials .Product.Team }}</span>
+        {{ end }}
+        <span>{{ .Product.Team }}</span>
+      </div>
     </div>
     <div class="product-detail">
       <div class="product-meta">
         <span class="tag">{{ .Product.Sport }}</span>
         {{ if .Product.Grade }}<span class="tag">{{ .Product.Grade }}</span>{{ end }}
+        {{ if .Product.CardType }}<span class="tag">{{ .Product.CardType }}</span>{{ end }}
         {{ if .Product.LiveExclusive }}<span class="tag live">Live Stream Priority</span>{{ end }}
       </div>
       <h1>{{ .Product.Title }}</h1>
@@ -24,13 +39,15 @@
           data-title="{{ .Product.Title }}"
           data-summary="{{ .Product.Summary }}"
           data-price="{{ .Product.PriceCents }}"
-          data-accent="{{ .Product.Accent }}">
+          data-accent="{{ .Product.Accent }}"
+          data-team="{{ .Product.Team }}">
           Add to Cart
         </button>
         <a class="button dark" href="/cart">Go to Cart</a>
       </div>
       <div class="detail-grid">
         <div><span>Condition</span><strong>{{ .Product.Condition }}</strong></div>
+        <div><span>Card Type</span><strong>{{ .Product.CardType }}</strong></div>
         <div><span>Card Number</span><strong>{{ .Product.CardNumber }}</strong></div>
         <div><span>Year</span><strong>{{ .Product.Year }}</strong></div>
         <div><span>Quantity</span><strong>{{ .Product.Quantity }}</strong></div>

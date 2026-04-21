@@ -4,7 +4,8 @@
 <section class="page-header">
   <div class="wrap narrow">
     <span class="eyebrow">Cart</span>
-    <h1>Clean checkout flow with local demo ordering and a Stripe-ready backend.</h1>
+    <h1>Review cards, apply demo codes, and place a test order.</h1>
+    <p>Demo checkout mode — payment connection can be enabled when Stripe is configured.</p>
   </div>
 </section>
 
@@ -13,12 +14,25 @@
     <div id="cart-items" class="cart-items"></div>
     <aside class="panel">
       <span class="eyebrow">Checkout</span>
-      <h2 id="cart-total">$0.00</h2>
-      <p>On localhost, checkout creates a tracked demo order in the Go app. Stripe keys can be wired into this backend later without changing the store structure.</p>
+      <div class="totals-list">
+        <div><span>Subtotal</span><strong id="cart-subtotal">$0.00</strong></div>
+        <div><span>Discount</span><strong id="cart-discount">$0.00</strong></div>
+        <div><span>Estimated tax</span><strong id="cart-tax">$0.00</strong></div>
+        <div class="total-row"><span>Total</span><strong id="cart-total">$0.00</strong></div>
+      </div>
+      <div class="coupon-box">
+        <label for="coupon-code">Coupon code</label>
+        <div class="coupon-row">
+          <input id="coupon-code" placeholder="WELCOME10 or LIVE5">
+          <button class="button dark small" id="apply-coupon" type="button">Apply</button>
+        </div>
+        <p id="coupon-message" class="subtle">Demo codes: WELCOME10 = 10% off, LIVE5 = 5% off.</p>
+      </div>
+      <p>Checkout creates a demo order in this app. Payment, tax calculation, and Stripe confirmation can be connected later when credentials are configured.</p>
       <form id="checkout-form" class="stack">
         <input name="customer_name" placeholder="Customer name">
         <input name="email" type="email" placeholder="Email address">
-        <button class="button gold" type="submit">Place Order</button>
+        <button class="button gold" type="submit">Place Demo Order</button>
       </form>
       <p id="cart-error" class="error"></p>
     </aside>

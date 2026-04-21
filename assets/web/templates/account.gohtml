@@ -2,12 +2,22 @@
 
 {{ define "content" }}
 <section class="section">
-  <div class="wrap narrow">
+  <div class="wrap account-grid">
     <article class="panel">
       <span class="eyebrow">Account</span>
       <h1>{{ .CurrentUser.Name }}</h1>
       <p>{{ .CurrentUser.Email }}</p>
-      <p>Admin access: {{ if .CurrentUser.IsAdmin }}enabled{{ else }}not enabled{{ end }}</p>
+      <p>Track demo orders, save your customer details, and prepare for future repeat-buyer perks.</p>
+    </article>
+    <article class="panel rewards-panel">
+      <span class="eyebrow">Rewards Preview</span>
+      <h2>Creswood Rewards</h2>
+      <div class="reward-list">
+        <div><strong>Earn points on purchases.</strong><p>Future checkout orders can award account points.</p></div>
+        <div><strong>Use rewards for future discounts.</strong><p>Rewards can become coupon codes or account credits later.</p></div>
+        <div><strong>Live-sale customers can receive special codes.</strong><p>Stream buyers can get event-specific codes like LIVE5.</p></div>
+      </div>
+      <p class="subtle">Clerk is {{ if .ClerkEnabled }}configured{{ else }}not configured, so this page is running in local demo account mode{{ end }}.</p>
     </article>
   </div>
 </section>

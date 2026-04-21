@@ -5,11 +5,12 @@
   <form method="post" class="panel auth-panel">
     <span class="eyebrow">Sign In</span>
     <h1>Access your account.</h1>
-    <p>Bootstrap admin account: <strong>{{ .BootstrapEmail }}</strong></p>
+    <p>Use local demo account access now; Clerk can be connected later when credentials are configured.</p>
     {{ if .Flash }}<p class="error">{{ .Flash }}</p>{{ end }}
     <input name="email" type="email" placeholder="Email">
     <input name="password" type="password" placeholder="Password">
     <button class="button gold" type="submit">Sign In</button>
+    <p class="subtle">New customer? <a href="/sign-up">Create an account</a> to preview rewards and repeat-buyer features.</p>
   </form>
 </section>
 {{ end }}

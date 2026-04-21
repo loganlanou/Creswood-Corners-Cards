@@ -41,7 +41,11 @@
         <strong>{{ .Live.Title }}</strong>
         <p>{{ .Live.Callout }}</p>
       </div>
-      <a class="button gold" href="{{ .Live.StreamURL }}" target="_blank" rel="noreferrer">Join Live Selling</a>
+      {{ if .Live.StreamURL }}
+        <a class="button gold" href="{{ .Live.StreamURL }}" target="_blank" rel="noreferrer">Join Live Selling</a>
+      {{ else }}
+        <span class="button dark disabled">Live link coming soon</span>
+      {{ end }}
     </div>
   </section>
   {{ end }}
@@ -54,18 +58,19 @@
     <div class="wrap footer-grid">
       <div>
         <h3>Creswood Corners Cards</h3>
-        <p>Football-first card sales, live stream support, account capture, and operational visibility in one Go application.</p>
+        <p>Football-first card sales, live stream support, customer accounts, and demo checkout foundations in one Go application.</p>
       </div>
       <div>
         <h4>Store</h4>
         <a href="/shop">Catalog</a>
         <a href="/live">Live selling</a>
+        <a href="/live#sales-channels">Sales channels</a>
         <a href="/cart">Cart</a>
       </div>
       <div>
-        <h4>Operations</h4>
-        <p>Clerk ready: {{ if .ClerkEnabled }}configured{{ else }}not configured{{ end }}</p>
-        <p>Stripe ready: {{ if .StripeEnabled }}configured{{ else }}demo checkout mode{{ end }}</p>
+        <h4>Demo Status</h4>
+        <p>Accounts: {{ if .ClerkEnabled }}Clerk configured{{ else }}local demo mode{{ end }}</p>
+        <p>Checkout: {{ if .StripeEnabled }}Stripe configured{{ else }}demo mode, no payment collected{{ end }}</p>
         <p>Reference: <a href="{{ .ReferenceWebsite }}" target="_blank" rel="noreferrer">Logan's 3D Creations</a></p>
       </div>
     </div>

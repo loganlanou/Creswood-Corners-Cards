@@ -4,9 +4,13 @@
 <section class="page-header">
   <div class="wrap">
     <span class="eyebrow">Live Selling</span>
-    <h1>One place for your stream link, live callout, and stream-priority inventory.</h1>
-    <p>This page follows the same clean service-led structure as the reference site but adapts it for live card sales.</p>
-    {{ if .Live.StreamURL }}<a class="button gold" href="{{ .Live.StreamURL }}" target="_blank" rel="noreferrer">Open {{ .Live.Platform }}</a>{{ end }}
+    <h1>Live drops, stream status, and claim-ready football singles.</h1>
+    <p>Use this page for upcoming live sale names, schedule status, featured teams, and stream-priority cards.</p>
+    {{ if .Live.StreamURL }}
+      <a class="button gold" href="{{ .Live.StreamURL }}" target="_blank" rel="noreferrer">Open {{ .Live.Platform }}</a>
+    {{ else }}
+      <span class="button dark disabled">Live link coming soon</span>
+    {{ end }}
   </div>
 </section>
 
@@ -26,6 +30,38 @@
   </div>
 </section>
 
+<section class="section muted">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Live Schedule</span>
+        <h2>Event names and status cards that can be updated in code.</h2>
+      </div>
+    </div>
+    <div class="event-grid">
+      {{ range .LiveEvents }}
+      <article class="event-card">
+        <div class="event-top">
+          <span class="tag live">{{ .Status }}</span>
+          <span>{{ .Platform }}</span>
+        </div>
+        <h3>{{ .Name }}</h3>
+        <p>{{ .Description }}</p>
+        <dl>
+          <div><dt>Date/time</dt><dd>{{ .DateTime }}</dd></div>
+          <div><dt>Featured</dt><dd>{{ .FeaturedCards }}</dd></div>
+        </dl>
+        {{ if .LinkURL }}
+          <a class="button gold small" href="{{ .LinkURL }}" target="_blank" rel="noreferrer">Open live link</a>
+        {{ else }}
+          <span class="button dark small disabled">Live link coming soon</span>
+        {{ end }}
+      </article>
+      {{ end }}
+    </div>
+  </div>
+</section>
+
 <section class="section">
   <div class="wrap">
     <div class="section-head">
@@ -37,10 +73,24 @@
     <div class="product-grid">
       {{ range .Products }}
       <article class="product-card">
-        <div class="product-art accent-{{ .Accent }}">
-          <span>{{ .Team }}</span>
-          <strong>{{ if .Player }}{{ .Player }}{{ else }}{{ .Title }}{{ end }}</strong>
-          <p>{{ .Brand }}</p>
+        <div class="card-image-wrap product-art accent-{{ .Accent }}">
+          {{ if .ImageURL }}
+            <img src="{{ .ImageURL }}" alt="{{ .Title }}">
+          {{ else }}
+            <div class="card-placeholder">
+              <span>{{ .Year }}</span>
+              <strong>{{ if .PlayerName }}{{ .PlayerName }}{{ else }}{{ .Title }}{{ end }}</strong>
+              <p>{{ .CardType }}</p>
+            </div>
+          {{ end }}
+          <div class="team-chip">
+            {{ if .TeamLogoURL }}
+              <img src="{{ .TeamLogoURL }}" alt="{{ .TeamLogoAlt }}">
+            {{ else }}
+              <span class="team-badge">{{ teamInitials .Team }}</span>
+            {{ end }}
+            <span>{{ .Team }}</span>
+          </div>
         </div>
         <div class="product-body">
           <h3><a href="/shop/{{ .Slug }}">{{ .Title }}</a></h3>
@@ -50,6 +100,27 @@
             <a class="button dark small" href="/shop/{{ .Slug }}">View</a>
           </div>
         </div>
+      </article>
+      {{ end }}
+    </div>
+  </div>
+</section>
+
+<section class="section muted" id="sales-channels">
+  <div class="wrap">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Sales Channels</span>
+        <h2>Where customers can buy or follow upcoming drops.</h2>
+      </div>
+    </div>
+    <div class="channel-grid">
+      {{ range .SalesChannels }}
+      <article class="panel">
+        <span class="eyebrow">{{ .Type }}</span>
+        <h3>{{ .Name }}</h3>
+        <p><strong>{{ .Schedule }}</strong></p>
+        <p>{{ .Notes }}</p>
       </article>
       {{ end }}
     </div>
